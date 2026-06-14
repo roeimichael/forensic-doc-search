@@ -47,3 +47,16 @@ def test_short_text_is_single_chunk() -> None:
     chunks = ch.chunk(_doc("a short witness statement with only a handful of words"))
     assert len(chunks) == 1
     assert chunks[0].char_span[0] <= chunks[0].char_span[1]
+
+
+def test_char_span_is_exact_provenance() -> None:
+    # the chunk text MUST equal the original document slice at its char_span
+    # (forensic provenance: a wrong offset is a real bug, not cosmetic)
+    text = "First paragraph here.\n\nSecond paragraph with more words.\n\nThird one too, indeed."
+    doc = _doc(text)
+    ch = Chunker(WordTokenizer(), chunk_size=8, chunk_overlap=2, min_chunk_size=1)
+    chunks = ch.chunk(doc)
+    assert len(chunks) > 1
+    for c in chunks:
+        s, e = c.char_span
+        assert doc.text[s:e] == c.text

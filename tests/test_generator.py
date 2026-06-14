@@ -57,6 +57,31 @@ def test_regeneration_is_clean_slate(tmp_path) -> None:
     assert len(docs) == 48
 
 
+def test_regeneration_is_byte_identical(tmp_path) -> None:
+    # invariant PDFs + deterministic text => regenerating is byte-for-byte stable
+    # (no /CreationDate or /ID churn), so a committed corpus doesn't spuriously diff.
+    generate(n=48, seed=5, out_dir=tmp_path / "a")
+    generate(n=48, seed=5, out_dir=tmp_path / "b")
+    for pa in (tmp_path / "a").glob("*"):
+        pb = tmp_path / "b" / pa.name
+        assert pa.read_bytes() == pb.read_bytes(), f"{pa.name} differs across runs"
+
+
+def test_ground_truth_queries_are_not_verbatim_substrings(tmp_path) -> None:
+    # the de-circularization guarantee: a paraphrase query must NOT appear verbatim in
+    # its target document (else the dense-vs-hybrid comparison is a string-match tautology)
+    generate(n=80, seed=11, out_dir=tmp_path)
+    gt = json.loads((tmp_path / "ground_truth.json").read_text(encoding="utf-8"))
+    paraphrase = [e for e in gt if e.get("category") == "paraphrase"]
+    assert paraphrase, "expected some paraphrase-category queries"
+    for e in paraphrase:
+        f = tmp_path / e["expected_source_file"]
+        if f.suffix == ".pdf":
+            continue  # PDF text is extracted at load time, not stored verbatim
+        body = f.read_text(encoding="utf-8", errors="ignore").lower()
+        assert e["query"].lower() not in body, f"query is a verbatim substring: {e['query']}"
+
+
 def test_n_below_minimum_is_rejected(tmp_path) -> None:
     with pytest.raises(ValueError):
         generate(n=12, seed=1, out_dir=tmp_path / "nope")

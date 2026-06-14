@@ -109,6 +109,60 @@ SUSPECT_CLOTHES = ["a grey hooded sweatshirt", "a high-visibility work jacket", 
                    "a red windbreaker", "a black puffer jacket and beanie", "a denim jacket",
                    "a hooded raincoat", "a navy tracksuit"]
 
+# ── paraphrase maps: ground-truth queries describe the planted signature in DIFFERENT
+# words, so retrieval must match semantically (not by verbatim substring). This is what
+# makes the dense-vs-hybrid comparison honest rather than a BM25 string-match tautology.
+_COLOR_PARAPHRASE = {
+    "blue": "blue", "red": "red", "silver": "silver-grey", "black": "dark-coloured",
+    "white": "pale", "green": "green", "grey": "greyish", "dark blue": "deep blue",
+    "maroon": "dark red", "beige": "sandy-coloured", "navy": "dark blue",
+    "gunmetal": "dark metallic grey",
+}
+_TYPE_PARAPHRASE = {
+    "sedan": "saloon car", "hatchback": "hatchback", "SUV": "sport-utility vehicle",
+    "pickup truck": "pickup", "panel van": "cargo van", "coupe": "two-door car",
+    "estate": "station wagon", "crossover": "compact crossover",
+}
+_DISTINCTIVE_PARAPHRASE = {
+    "a dented rear bumper": "a crumpled back fender",
+    "a cracked windscreen": "a fractured front window",
+    "a ski rack on the roof": "roof bars for carrying skis",
+    "out-of-state plates": "licence plates from another region",
+    "a custom skull decal on the bonnet": "a skull design across the hood",
+    "mismatched hubcaps": "wheel covers that did not match",
+    "a large rust patch on the driver's door": "heavy corrosion on the driver-side door",
+    "heavily tinted rear windows": "very dark glass at the back",
+    "a faded blue tarpaulin in the bed": "a weathered sheet covering the cargo area",
+    "a missing wing mirror": "an absent side mirror",
+    "a bumper sticker reading COASTAL": "a seaside-themed sticker on the bumper",
+    "a roof-mounted light bar": "a row of lamps fixed to the roof",
+    "a cracked tail light": "a broken rear lamp",
+    "oversized off-road tyres": "unusually large all-terrain wheels",
+    "a primer-grey replacement door": "an unpainted grey swapped-in door",
+    "a trailer hitch": "a towing coupling at the back",
+    "peeling window film": "tint film coming away from the glass",
+    "a chrome bull bar": "a shiny metal guard across the front",
+    "a sun-bleached bonnet": "a hood faded by the sun",
+    "a spare wheel on the rear": "an extra tyre mounted at the back",
+}
+_EVADJ_PARAPHRASE = {
+    "a monogrammed": "an initial-engraved", "a torn": "a ripped", "a half-burned": "a partly charred",
+    "a mud-caked": "a dirt-covered", "a custom-engraved": "a specially etched",
+    "a partially melted": "a heat-warped", "a hand-stitched": "a hand-sewn", "a rusted": "a corroded",
+    "a brand-new": "an unused", "a blood-stained": "a blood-marked",
+}
+_EVITEM_PARAPHRASE = {
+    "brass lighter": "metal cigarette lighter", "leather glove": "leather hand covering",
+    "canvas tool bag": "fabric tool holdall", "claw hammer": "carpenter's hammer",
+    "set of bolt cutters": "heavy-duty wire cutters", "car key fob": "vehicle remote key",
+    "prepaid mobile phone": "pay-as-you-go handset", "diner receipt": "restaurant till slip",
+    "coil of green nylon rope": "loop of green synthetic cord", "size-11 work boot": "large work boot",
+    "balaclava": "full-face knitted mask", "flat-head screwdriver": "slotted screwdriver",
+    "crowbar": "pry bar", "nylon backpack": "synthetic rucksack", "pair of pliers": "set of gripping pliers",
+    "wristwatch": "wrist timepiece", "baseball cap": "peaked cap", "rubber torch": "rubberised flashlight",
+    "roll of duct tape": "roll of cloth adhesive tape", "leather wallet": "leather billfold",
+}
+
 
 # ── case model ───────────────────────────────────────────────────────────────
 @dataclass
@@ -127,6 +181,13 @@ class Case:
     veh_phrase: str          # distinctive vehicle → witness statement signature
     ev_phrase: str           # unique evidence item → report signature
     quote_name: str          # named person → transcript signature
+    # structured signature components (so queries can paraphrase, not copy, the phrase)
+    veh_color: str = ""
+    veh_make: str = ""
+    veh_type: str = ""
+    veh_distinctive: str = ""
+    ev_adj: str = ""
+    ev_item: str = ""
     evidence: list[str] = field(default_factory=list)
 
 
@@ -155,14 +216,32 @@ def _month_window(iso_date: str) -> dict[str, str]:
     return {"gte": first.isoformat(), "lte": (nxt - datetime.timedelta(days=1)).isoformat()}
 
 
+def _pick_vehicle(rng: Random, used: set[str]) -> tuple[str, str, str, str, str]:
+    """Pick (color, make, type, distinctive, phrase) with a unique assembled phrase."""
+    for _ in range(2000):
+        color, make = rng.choice(VEHICLE_COLORS), rng.choice(VEHICLE_MAKES)
+        vtype, dist = rng.choice(VEHICLE_TYPES), rng.choice(VEH_DISTINCTIVE)
+        phrase = f"a {color} {make} {vtype} with {dist}"
+        if phrase not in used:
+            used.add(phrase)
+            return color, make, vtype, dist, phrase
+    raise RuntimeError("exhausted unique vehicle attempts (increase entity pools)")
+
+
+def _pick_evidence(rng: Random, used: set[str]) -> tuple[str, str, str]:
+    """Pick (adj, item, phrase) with a unique assembled phrase."""
+    for _ in range(2000):
+        adj, item = rng.choice(EV_ADJ), rng.choice(EV_ITEM)
+        phrase = f"{adj} {item}"
+        if phrase not in used:
+            used.add(phrase)
+            return adj, item, phrase
+    raise RuntimeError("exhausted unique evidence attempts (increase entity pools)")
+
+
 def _build_case(rng: Random, used: dict[str, set]) -> Case:
-    veh = _unique(
-        rng,
-        lambda: f"a {rng.choice(VEHICLE_COLORS)} {rng.choice(VEHICLE_MAKES)} "
-        f"{rng.choice(VEHICLE_TYPES)} with {rng.choice(VEH_DISTINCTIVE)}",
-        used["veh"],
-    )
-    ev = _unique(rng, lambda: f"{rng.choice(EV_ADJ)} {rng.choice(EV_ITEM)}", used["ev"])
+    color, make, vtype, dist, veh = _pick_vehicle(rng, used["veh"])
+    ev_adj, ev_item, ev = _pick_evidence(rng, used["ev"])
     case = Case(
         case_id=_unique(rng, lambda: f"{rng.choice([2022, 2023, 2024])}-{rng.randint(1000, 9999)}", used["case"]),
         crime_type=rng.choice(CRIME_TYPES),
@@ -178,6 +257,8 @@ def _build_case(rng: Random, used: dict[str, set]) -> Case:
         veh_phrase=veh,
         ev_phrase=ev,
         quote_name=_unique(rng, lambda: _name(rng), used["name"]),
+        veh_color=color, veh_make=make, veh_type=vtype, veh_distinctive=dist,
+        ev_adj=ev_adj, ev_item=ev_item,
     )
     case.evidence = [case.ev_phrase,
                      f"{rng.choice(EV_ADJ)} {rng.choice(EV_ITEM)}",
@@ -340,10 +421,14 @@ def _write_json(path: Path, text: str, meta: dict) -> None:
 
 
 def _write_pdf(path: Path, text: str, meta: dict) -> None:
+    from reportlab import rl_config
     from reportlab.lib.pagesizes import LETTER
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
+    # Invariant mode pins /CreationDate, /ModDate and /ID so regenerating the corpus
+    # is byte-identical (no spurious per-run diff / checksum churn).
+    rl_config.invariant = 1
     styles = getSampleStyleSheet()
     flow: list[Any] = []
     for line in text.split("\n"):
@@ -375,12 +460,32 @@ _RENDERERS: dict[str, Callable[..., str]] = {
 _ROTATION = [("veh", "witness_statement"), ("ev", "report"), ("quote", "transcript")]
 
 
-def _query_for(role: str, case: Case) -> str:
+def _paraphrase_vehicle(case: Case) -> str:
+    color = _COLOR_PARAPHRASE.get(case.veh_color, case.veh_color)
+    vtype = _TYPE_PARAPHRASE.get(case.veh_type, case.veh_type)
+    dist = _DISTINCTIVE_PARAPHRASE.get(case.veh_distinctive, case.veh_distinctive)
+    return f"a {color} {case.veh_make} {vtype} that had {dist}"
+
+
+def _paraphrase_evidence(case: Case) -> str:
+    adj = _EVADJ_PARAPHRASE.get(case.ev_adj, case.ev_adj)
+    item = _EVITEM_PARAPHRASE.get(case.ev_item, case.ev_item)
+    return f"{adj} {item} found at the scene"
+
+
+def _query_for(role: str, case: Case) -> tuple[str, str]:
+    """Return ``(query, category)``.
+
+    ``paraphrase`` queries describe the planted signature in DIFFERENT words (no verbatim
+    overlap) so retrieval must match semantically — this is the honest headline. The
+    ``entity`` query keys on a proper name (a realistic exact-token forensic search) where
+    lexical/BM25 retrieval legitimately shines; reporting both shows hybrid's real trade-off.
+    """
     if role == "veh":
-        return f"vehicle described as {case.veh_phrase}"
+        return _paraphrase_vehicle(case), "paraphrase"
     if role == "ev":
-        return f"{case.ev_phrase} recovered from the scene"
-    return f"the interview in which the suspect mentioned {case.quote_name}"
+        return _paraphrase_evidence(case), "paraphrase"
+    return f"the interview where the suspect referred to {case.quote_name}", "entity"
 
 
 # ── orchestrator ─────────────────────────────────────────────────────────────
@@ -451,8 +556,14 @@ def generate(n: int = 120, seed: int = 42, out_dir: str | Path = "data/generated
             filters = {"case_id": case.case_id}
         else:
             filters = {"doc_type": doc_type, "date": _month_window(case.date)}
+        query, category = _query_for(role, case)
         ground_truth.append(
-            {"query": _query_for(role, case), "expected_source_file": filename, "filters": filters}
+            {
+                "query": query,
+                "expected_source_file": filename,
+                "filters": filters,
+                "category": category,
+            }
         )
 
     (out / "ground_truth.json").write_text(

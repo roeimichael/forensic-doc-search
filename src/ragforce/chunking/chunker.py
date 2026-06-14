@@ -59,10 +59,11 @@ class Chunker:
         """Split ``doc`` into ordered, metadata-carrying chunks."""
         separators = self._separators or separators_for(doc.doc_type)
         units = self._split_recursive(doc.text, separators, 0)
-        spans = self._merge(units)  # list[(text, start, end)]
+        spans = self._merge(units)  # list[(start, end)]
 
         chunks: list[Chunk] = []
-        for text, start, end in spans:
+        for start, end in spans:
+            text = doc.text[start:end]  # faithful slice -> char_span is exact provenance
             tokens = self._token_len(text)
             if tokens < self._min_chunk_size and len(spans) > 1:
                 continue  # drop tiny fragment (unless it is the only chunk)
@@ -92,34 +93,40 @@ class Chunker:
     def _split_recursive(self, text: str, separators: list[str], offset: int) -> list[tuple[str, int]]:
         """Break ``text`` into ``(piece, start_char)`` units each within the token budget.
 
-        Splits on the first separator; any segment still over budget is recursed with
-        the remaining (finer) separators. A segment with no separators left is kept
-        whole (the embedder will truncate an extreme outlier).
+        ``start_char`` is the EXACT offset of ``piece`` in the original document text
+        (leading whitespace is accounted for), so ``doc.text[start:start+len(piece)]``
+        equals ``piece``. Splits on the first separator; any over-budget segment recurses
+        with the finer separators; a separator-less segment is kept whole.
         """
-        text = text.strip()
-        if not text:
+        lead = len(text) - len(text.lstrip())
+        stripped = text.strip()
+        if not stripped:
             return []
-        if self._token_len(text) <= self._chunk_size:
-            return [(text, offset)]
-        if not separators:
-            return [(text, offset)]
+        offset += lead  # advance past leading whitespace so the offset is exact
+        if self._token_len(stripped) <= self._chunk_size or not separators:
+            return [(stripped, offset)]
 
         sep, rest = separators[0], separators[1:]
         units: list[tuple[str, int]] = []
         cursor = offset
-        segments = text.split(sep) if sep else [text]
+        segments = stripped.split(sep) if sep else [stripped]
         for i, seg in enumerate(segments):
             if seg.strip():
-                if self._token_len(seg) <= self._chunk_size:
-                    units.append((seg.strip(), cursor))
+                if self._token_len(seg.strip()) <= self._chunk_size:
+                    seg_lead = len(seg) - len(seg.lstrip())
+                    units.append((seg.strip(), cursor + seg_lead))
                 else:
                     units.extend(self._split_recursive(seg, rest, cursor))
             cursor += len(seg) + (len(sep) if i < len(segments) - 1 else 0)
         return units
 
-    def _merge(self, units: list[tuple[str, int]]) -> list[tuple[str, int, int]]:
-        """Greedily pack units into ``<= chunk_size``-token chunks with token overlap."""
-        chunks: list[tuple[str, int, int]] = []
+    def _merge(self, units: list[tuple[str, int]]) -> list[tuple[int, int]]:
+        """Greedily pack units into ``<= chunk_size``-token chunks with token overlap.
+
+        Returns ``(start, end)`` character spans into the original document; the chunk
+        text is the verbatim slice ``doc.text[start:end]`` (incl. original separators).
+        """
+        chunks: list[tuple[int, int]] = []
         cur: list[tuple[str, int]] = []
         cur_tokens = 0
         for text, off in units:
@@ -134,11 +141,10 @@ class Chunker:
         return chunks
 
     @staticmethod
-    def _finalize(units: list[tuple[str, int]]) -> tuple[str, int, int]:
-        text = " ".join(t for t, _ in units)
+    def _finalize(units: list[tuple[str, int]]) -> tuple[int, int]:
         start = units[0][1]
         end = units[-1][1] + len(units[-1][0])
-        return text, start, end
+        return start, end
 
     def _carry_overlap(self, units: list[tuple[str, int]]) -> tuple[list[tuple[str, int]], int]:
         """Return trailing units totalling roughly ``chunk_overlap`` tokens (for context)."""
