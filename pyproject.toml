@@ -15,23 +15,24 @@ authors = [{ name = "Roei Michael" }]
 # CPU-only install, pre-install the CPU wheel:
 #   pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cpu
 dependencies = [
-    "sentence-transformers==3.0.1",  # local dense embeddings (HEAVY: torch + transformers)
-    "qdrant-client==1.10.1",         # self-hosted vector store client (Query API: prefetch + RRF)
-    "fastembed==0.3.6",              # BM25 sparse vectors for native hybrid search
-    "pypdf==4.2.0",                  # PDF text extraction
-    "reportlab==4.2.0",              # generate .pdf docs in the synthetic dataset
-    "pydantic==2.7.4",
-    "pydantic-settings==2.3.4",      # config.yaml + .env layered settings
-    "PyYAML==6.0.1",
-    "python-dotenv==1.0.1",
-    "typer==0.12.3",                 # `rag` CLI
-    "fastapi==0.111.0",
-    "uvicorn[standard]==0.30.1",
-    "httpx==0.27.0",                 # UI -> API client + FastAPI TestClient
+    "sentence-transformers==5.5.1",  # local dense embeddings (HEAVY: torch + transformers)
+    "transformers==5.12.0",
+    "torch==2.12.0",
+    "qdrant-client==1.13.3",         # matches the Qdrant v1.13 server in docker-compose
+    "fastembed==0.8.0",              # BM25 sparse vectors for native hybrid search
+    "pypdf==6.13.2",                 # PDF text extraction
+    "reportlab==4.5.1",              # generate .pdf docs in the synthetic dataset
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.1",     # config.yaml + .env layered settings
+    "PyYAML==6.0.3",
+    "typer==0.26.7",                 # `rag` CLI
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "httpx==0.28.1",                 # UI -> API client + FastAPI TestClient
 ]
 
 [project.optional-dependencies]
-ui = ["streamlit==1.36.0"]
+ui = ["streamlit==1.41.1"]
 dev = ["pytest==8.2.2", "ruff==0.5.0", "black==24.4.2"]
 
 [project.scripts]

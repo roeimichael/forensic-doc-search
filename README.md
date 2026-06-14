@@ -28,7 +28,7 @@ and **structured metadata** (doc_type, case_id, date) — with **no cloud APIs**
 ## Quickstart (≤ 3 commands)
 
 > Assumes Python 3.10+ and Docker. For a CPU-only install (smaller/faster), first:
-> `pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cpu`
+> `pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu`
 
 ```bash
 pip install -r requirements.txt && pip install -e .   # 1. dependencies

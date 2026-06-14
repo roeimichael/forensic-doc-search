@@ -11,9 +11,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from sentence_transformers import SentenceTransformer
+
 
 class DenseEmbedder:
-    """Wrap a SentenceTransformer: prefix-aware, L2-normalized, batched."""
+    """Wrap a SentenceTransformer: prefix-aware, L2-normalized, batched.
+
+    Prefixes are the model-swap mechanism: bge sets a query prefix, e5 sets both,
+    MiniLM sets neither — so changing model is a config edit, not a code change.
+    """
 
     def __init__(
         self,
@@ -25,33 +31,36 @@ class DenseEmbedder:
         normalize: bool = True,
         max_seq_length: int | None = None,
     ) -> None:
-        """Load the model locally (no network at inference) and apply config.
-
-        TODO(T1.3): ``SentenceTransformer(model_name, device=device)``; set
-        ``max_seq_length`` if given; stash prefixes + normalize flag.
-        """
-        raise NotImplementedError("DenseEmbedder.__init__ — implemented in the next step (T1.3)")
+        self._model = SentenceTransformer(model_name, device=device)
+        if max_seq_length is not None:
+            self._model.max_seq_length = max_seq_length
+        self._query_prefix = query_prefix
+        self._passage_prefix = passage_prefix
+        self._normalize = normalize
 
     @property
     def dim(self) -> int:
         """Embedding dimension reported by the model (asserted against config)."""
-        raise NotImplementedError("DenseEmbedder.dim — implemented in the next step (T1.3)")
+        return int(self._model.get_sentence_embedding_dimension())
 
     @property
     def tokenizer(self) -> Any:
         """The model's HF tokenizer, handed to the Chunker as its length function."""
-        raise NotImplementedError("DenseEmbedder.tokenizer — implemented in the next step (T1.3)")
+        return self._model.tokenizer
 
     def embed_passages(self, texts: list[str], *, batch_size: int = 64) -> list[list[float]]:
-        """Embed document chunks (prepends ``passage_prefix``).
-
-        TODO(T1.3): prepend passage_prefix; ``model.encode(..., normalize_embeddings)``.
-        """
-        raise NotImplementedError("DenseEmbedder.embed_passages — next step (T1.3)")
+        """Embed document chunks (prepends ``passage_prefix``), L2-normalized."""
+        prefixed = [self._passage_prefix + t for t in texts]
+        vecs = self._model.encode(
+            prefixed, batch_size=batch_size, normalize_embeddings=self._normalize,
+            show_progress_bar=False, convert_to_numpy=True,
+        )
+        return vecs.tolist()
 
     def embed_query(self, text: str) -> list[float]:
-        """Embed a search query (prepends ``query_prefix``).
-
-        TODO(T1.3): prepend query_prefix; encode single text; return vector.
-        """
-        raise NotImplementedError("DenseEmbedder.embed_query — next step (T1.3)")
+        """Embed a single search query (prepends ``query_prefix``), L2-normalized."""
+        vec = self._model.encode(
+            self._query_prefix + text, normalize_embeddings=self._normalize,
+            show_progress_bar=False, convert_to_numpy=True,
+        )
+        return vec.tolist()

@@ -8,6 +8,10 @@ stub until the implementation step.
 from __future__ import annotations
 
 import logging
+import logging.config
+from pathlib import Path
+
+import yaml
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -16,9 +20,18 @@ def get_logger(name: str) -> logging.Logger:
 
 
 def configure_logging(config_file: str = "config/logging.yaml") -> None:
-    """Apply the logging dictConfig from ``config_file``.
+    """Apply the logging dictConfig from ``config_file`` (idempotent).
 
-    TODO(X5): read the YAML and call ``logging.config.dictConfig(...)``; fall back
-    to ``logging.basicConfig(level=INFO)`` if the file is missing.
+    Falls back to a sensible ``basicConfig`` if the file is missing or unreadable, so
+    logging never blocks a run.
     """
-    raise NotImplementedError("logging configuration is implemented in the next step (X5)")
+    path = Path(config_file)
+    try:
+        cfg = yaml.safe_load(path.read_text(encoding="utf-8"))
+        logging.config.dictConfig(cfg)
+    except (OSError, ValueError, KeyError, TypeError):
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )

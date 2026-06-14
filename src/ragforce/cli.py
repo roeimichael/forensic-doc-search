@@ -43,8 +43,15 @@ def ingest(
     recreate: bool = typer.Option(False, help="Wipe + rebuild the collection first."),
 ) -> None:
     """Run the ingestion pipeline (idempotent upsert into Qdrant)."""
-    # TODO(T1.6): load_settings() -> ragforce.pipeline.ingest.run_ingest(settings, source, recreate)
-    raise NotImplementedError("ingestion is implemented in the next step (T1.x)")
+    from ragforce.config import load_settings
+    from ragforce.logging_setup import configure_logging
+    from ragforce.pipeline import run_ingest
+
+    configure_logging()
+    stats = run_ingest(load_settings(), source_dir=source, recreate=recreate)
+    typer.echo(
+        f"Ingested {stats.documents} documents -> {stats.chunks} chunks -> {stats.upserted} upserted"
+    )
 
 
 @app.command()
@@ -61,8 +68,17 @@ def eval(
 @app.command()
 def health() -> None:
     """Print vector-store stats: point count, collection name, embedding model."""
-    # TODO(T3.3): ragforce.store.qdrant_store.VectorStore(...).stats()
-    raise NotImplementedError("health is implemented in a later step (T3.3)")
+    from ragforce.config import load_settings
+    from ragforce.store import VectorStore
+
+    s = load_settings()
+    store = VectorStore(
+        host=s.qdrant.host, port=s.qdrant.port, collection=s.qdrant.collection,
+        dense_vector_name=s.qdrant.dense_vector_name, sparse_vector_name=s.qdrant.sparse_vector_name,
+    )
+    stats = store.stats()
+    stats["embedding_model"] = s.embedding.model_name
+    typer.echo(stats)
 
 
 if __name__ == "__main__":

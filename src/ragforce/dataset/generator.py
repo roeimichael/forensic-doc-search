@@ -257,6 +257,15 @@ def _render_report(rng: Random, case: Case) -> str:
             f"{w2} reported hearing raised voices and an engine shortly before the suspect left the area.",
         ]),
         rng.choice([
+            f"Modus operandi: The method used in this offence is consistent with a small number of "
+            f"recent incidents in the wider district, where access was gained quickly and high-value, "
+            f"portable items were targeted before the offender left in a waiting vehicle. Intelligence "
+            f"checks against those reports are being carried out as part of this investigation.",
+            f"Context: This is the second report of {case.crime_type} on or near {case.location} in "
+            f"recent months. Patrol patterns for the area are being reviewed, and {case.officer} has "
+            f"flagged the location for additional overnight attention pending the outcome of enquiries.",
+        ]),
+        rng.choice([
             f"Property and loss: {case.victim} reported that a number of items were taken or damaged "
             "during the incident. A preliminary list has been recorded pending a full inventory, and "
             "the estimated value is to be confirmed.",
@@ -409,7 +418,10 @@ def generate(n: int = 120, seed: int = 42, out_dir: str | Path = "data/generated
     role_file: dict[tuple[int, str], str] = {}
 
     for gi, (ci, case, doc_type, role) in enumerate(specs):
-        fmt = FORMATS[gi % len(FORMATS)]
+        # Offset by case index so format is NOT locked to a doc's role/position
+        # (otherwise every report would be a PDF, every transcript JSON, ...).
+        # Still yields an even split and one of each format per 4-doc case.
+        fmt = FORMATS[(gi + ci) % len(FORMATS)]
         if doc_type == "witness_statement":
             text = _render_witness(rng, case, primary=(role == "veh"))
         else:

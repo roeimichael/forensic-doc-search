@@ -9,27 +9,23 @@ from __future__ import annotations
 
 from typing import Any
 
+from fastembed import SparseTextEmbedding
+
 
 class SparseEmbedder:
-    """Produce BM25 sparse vectors for passages and queries."""
+    """Produce BM25 sparse vectors (fastembed) for passages and queries.
+
+    Returns fastembed ``SparseEmbedding`` objects (``.indices`` / ``.values``);
+    :func:`ragforce.store.points.to_sparse_vector` converts them to Qdrant's format.
+    """
 
     def __init__(self, model_name: str = "Qdrant/bm25") -> None:
-        """Initialize the fastembed sparse model.
-
-        TODO(T5.1): ``fastembed.SparseTextEmbedding(model_name)``.
-        """
-        raise NotImplementedError("SparseEmbedder.__init__ — implemented in a later step (T5.1)")
+        self._model = SparseTextEmbedding(model_name=model_name)
 
     def embed_passages(self, texts: list[str], *, batch_size: int = 64) -> list[Any]:
-        """Embed chunks into sparse vectors (row-aligned with the dense batch).
-
-        TODO(T5.1): ``list(model.embed(texts))`` → (indices, values) sparse vectors.
-        """
-        raise NotImplementedError("SparseEmbedder.embed_passages — later step (T5.1)")
+        """Embed chunks into BM25 sparse vectors (row-aligned with the dense batch)."""
+        return list(self._model.embed(texts, batch_size=batch_size))
 
     def embed_query(self, text: str) -> Any:
-        """Embed a single query into a sparse vector.
-
-        TODO(T5.1): ``next(model.query_embed(text))``.
-        """
-        raise NotImplementedError("SparseEmbedder.embed_query — later step (T5.1)")
+        """Embed a single query into a BM25 sparse vector."""
+        return next(iter(self._model.query_embed(text)))

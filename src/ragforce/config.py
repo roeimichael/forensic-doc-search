@@ -15,8 +15,15 @@ the implementation step (see TODO).
 
 from __future__ import annotations
 
+import os
+
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+)
 
 DEFAULT_CONFIG_PATH = "config.yaml"
 
@@ -93,6 +100,9 @@ class Settings(BaseSettings):
     api: ApiCfg = Field(default_factory=ApiCfg)
     logging: LoggingCfg = Field(default_factory=LoggingCfg)
 
+    # Path to the YAML config; overridable per-call by load_settings().
+    _yaml_path: str = DEFAULT_CONFIG_PATH
+
     model_config = SettingsConfigDict(
         env_prefix="RAG__",
         env_nested_delimiter="__",
@@ -100,12 +110,26 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Precedence (high → low): init args, env, .env, YAML file, field defaults."""
+        yaml_source = YamlConfigSettingsSource(settings_cls, yaml_file=cls._yaml_path)
+        return (init_settings, env_settings, dotenv_settings, yaml_source, file_secret_settings)
+
 
 def load_settings(config_path: str | None = None) -> Settings:
     """Build :class:`Settings` from ``config.yaml`` overlaid with env/.env (env wins).
 
-    TODO(X2): wire env-over-yaml precedence via ``settings_customise_sources``
-    (init > env > dotenv > YAML source > defaults), then assert
-    ``embedding.dim`` against the model's reported dimension at startup.
+    Resolution order, highest first: explicit kwargs, ``RAG__*`` env vars, ``.env``,
+    the YAML file, then field defaults. ``config_path`` (or ``$CONFIG_PATH``) selects
+    the YAML file.
     """
-    raise NotImplementedError("config loading is implemented in the next step (X2)")
+    Settings._yaml_path = config_path or os.environ.get("CONFIG_PATH", DEFAULT_CONFIG_PATH)
+    return Settings()

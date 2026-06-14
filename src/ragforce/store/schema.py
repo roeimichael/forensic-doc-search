@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from qdrant_client import models
+
 # (payload field, Qdrant index schema type). Datetime enables range filters on date.
 PAYLOAD_INDEXES: list[tuple[str, str]] = [
     ("doc_type", "keyword"),
@@ -22,16 +24,10 @@ PAYLOAD_INDEXES: list[tuple[str, str]] = [
 
 
 def vectors_config(dim: int) -> dict[str, Any]:
-    """Return the dense named-vector config (cosine).
-
-    TODO(T2.2): ``{"dense": VectorParams(size=dim, distance=Distance.COSINE)}``.
-    """
-    raise NotImplementedError("vectors_config — implemented in the next step (T2.2)")
+    """Dense named-vector config (cosine distance)."""
+    return {"dense": models.VectorParams(size=dim, distance=models.Distance.COSINE)}
 
 
 def sparse_vectors_config() -> dict[str, Any]:
-    """Return the sparse named-vector config (BM25 / IDF modifier).
-
-    TODO(T2.2): ``{"sparse": SparseVectorParams(modifier=Modifier.IDF)}``.
-    """
-    raise NotImplementedError("sparse_vectors_config — implemented in the next step (T2.2)")
+    """Sparse named-vector config (BM25 with IDF modifier) for hybrid search."""
+    return {"sparse": models.SparseVectorParams(modifier=models.Modifier.IDF)}
