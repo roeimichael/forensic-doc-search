@@ -26,10 +26,18 @@ def generate(
     n: int = typer.Option(120, help="Number of documents to generate (50–200)."),
     seed: int = typer.Option(42, help="RNG seed for deterministic output."),
     out: str = typer.Option("data/generated", help="Output directory for the corpus."),
+    seed_file: str = typer.Option(
+        "data/seeds/seed_snippets.jsonl", help="Real-text snippets to seed the prose."
+    ),
 ) -> None:
     """Generate the synthetic forensic corpus + ground_truth.json."""
-    # TODO(T0.1): call ragforce.dataset.generator.generate(n, seed, Path(out))
-    raise NotImplementedError("dataset generation is implemented in the next step (T0.1)")
+    from ragforce.dataset import generate as _generate
+
+    stats = _generate(n=n, seed=seed, out_dir=out, seed_file=seed_file)
+    typer.echo(f"Generated {stats['documents']} documents -> {stats['out_dir']}")
+    typer.echo(f"  by format:   {stats['by_format']}")
+    typer.echo(f"  by doc_type: {stats['by_doc_type']}")
+    typer.echo(f"  ground-truth pairs: {stats['ground_truth_pairs']}")
 
 
 @app.command()

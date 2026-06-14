@@ -10,9 +10,13 @@ venv/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.hypothesis/
 
 # Env / secrets (config-driven; never commit real secrets)
 .env
+
+# Confidential assignment brief — kept out of the repo deliberately
+Data Engineer Home Assignment.pdf
 
 # Self-hosted Qdrant persistent volume
 qdrant_storage/

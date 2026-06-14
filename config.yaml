@@ -47,7 +47,7 @@ dataset:
   num_docs: 120                 # 50–200
   seed: 42                      # deterministic generation
   doc_types: ["witness_statement", "report", "transcript"]
-  formats: ["txt", "pdf", "json"]
+  formats: ["txt", "pdf", "json", "eml"]   # required txt/pdf/json + email evidence
 
 api:
   host: "0.0.0.0"

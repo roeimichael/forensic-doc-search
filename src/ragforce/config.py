@@ -67,7 +67,7 @@ class DatasetCfg(BaseModel):
     doc_types: list[str] = Field(
         default_factory=lambda: ["witness_statement", "report", "transcript"]
     )
-    formats: list[str] = Field(default_factory=lambda: ["txt", "pdf", "json"])
+    formats: list[str] = Field(default_factory=lambda: ["txt", "pdf", "json", "eml"])
 
 
 class ApiCfg(BaseModel):

@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 from ragforce.loaders.base import Loader, LoaderError
+from ragforce.loaders.eml_loader import EmlLoader
 from ragforce.loaders.json_loader import JsonLoader
 from ragforce.loaders.pdf_loader import PdfLoader
 from ragforce.loaders.txt_loader import TxtLoader
@@ -22,6 +23,7 @@ _REGISTRY: dict[str, Loader] = {
     ".txt": TxtLoader(),
     ".pdf": PdfLoader(),
     ".json": JsonLoader(),
+    ".eml": EmlLoader(),
 }
 
 
