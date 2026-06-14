@@ -18,10 +18,10 @@
    └──────────┘   └──────────┘   └─────────────┘   └──────────────┘   └────┬─────┘
                                                                             │
                          SERVING (online)                                   │
-   Streamlit UI ──HTTP──▶ FastAPI ──▶ embed query ──▶ VectorStore.search ───┘
-   (Part 6)               (Part 3/5)                  dense | filtered | hybrid(RRF)
+   Streamlit UI ─HTTP─▶ FastAPI ─▶ embed query ─▶ VectorStore.search ─▶ rerank ─┘
+   (Part 6)             (Part 3/5)                dense|filtered|hybrid(RRF)  (cross-encoder)
                                        │
-                          eval/ ◀──────┘  ground_truth.json → Hit@K, MRR (Part 4)
+                          eval/ ◀──────┘  ground_truth.json → Hit@K, MRR, CIs (Part 4)
 ```
 
 The same `VectorStore` and embedder primitives serve ingestion (write) and the
@@ -36,10 +36,12 @@ API/eval (read), so no layer is rebuilt as the system grows.
 | Prefix handling | `query_prefix` / `passage_prefix` in config | bge needs a query prefix, e5 needs both, MiniLM none → model swap = config edit only. |
 | Vector store | **Qdrant** (Apache-2.0, Docker) | Native sparse vectors + server-side RRF (hybrid), payload pre-filtering incl. datetime ranges, deterministic ids, one-command compose. |
 | Distance | Cosine, L2-normalized dense vectors | Required by the brief. |
-| Hybrid | Dense + BM25 sparse (`fastembed` `Qdrant/bm25`), RRF fused server-side | Keeps BM25 inside the store; dense+sparse never drift; no separate index. |
-| Chunking | Token-aware recursive, length = embedder tokenizer | Sizes track the model on swap; recursive ≈ semantic quality on short docs at far lower cost. Defaults 400/50 tokens (bge), 200/20 (MiniLM); `min_chunk_size` drops fragments. |
-| Idempotency | `chunk_id = UUID5(NAMESPACE, "{source_file}:{chunk_index}")` + upsert | Same input → same id → overwrite, never duplicate. |
-| Dataset | Synthetic, real-text-seeded; emits `ground_truth.json` | Controlled metadata + known ground truth → honest, reproducible eval. |
+| Hybrid | Dense + BM25 sparse (`fastembed` `Qdrant/bm25`), RRF fused server-side | Keeps BM25 inside the store; dense+sparse never drift; no separate index. BM25 `avg_len` tracks `chunk_size` (else length-normalization is miscalibrated). |
+| Reranking | `bge-reranker-base` cross-encoder over the fused top-N | First-stage retrieval is recall-oriented; the cross-encoder reads (query, passage) jointly — the biggest lever for top-rank precision. Config-gated, on by default, local. |
+| Chunking | Token-aware recursive, length = embedder tokenizer | Sizes track the model on swap; recursive ≈ semantic quality on short docs at far lower cost. `char_span` is the exact source slice (forensic provenance). Defaults 400/50 tokens (bge), 200/20 (MiniLM). |
+| Idempotency | `chunk_id = UUID5(NAMESPACE, "{source_file}:{chunk_index}")` + upsert + per-source sweep | Same input → same id → overwrite; a `delete_by_sources` sweep before upsert removes orphans when an edited doc yields fewer chunks. |
+| Offline | `models_dir` / `local_files_only` + `rag fetch-models` | Warm the cache once online, then run air-gapped — no network at ingest/serve time. |
+| Dataset | Synthetic; **paraphrased** ground-truth queries; emits `ground_truth.json` | Controlled metadata + known ground truth, with queries lexically disjoint from the source so eval measures retrieval (not string matching). |
 
 ## 3. Ingestion Data Flow & Idempotency
 
@@ -53,10 +55,11 @@ VectorStore.upsert→ Qdrant       (idempotent: re-run overwrites same ids → s
 
 **Idempotency is enforced in exactly two places:** `store/points.make_point_id`
 (deterministic id) and `VectorStore.upsert` (overwrite-by-id). **Metadata is
-attached in exactly one place:** `store/points.build_payload`.
-
-*Known gap (future work):* if an edited file produces fewer chunks, stale trailing
-ids linger; a per-`source_file` id sweep before upsert would close it.
+attached in exactly one place:** `store/points.build_payload`. Before upserting, the
+pipeline runs `VectorStore.delete_by_sources` over the ingested files, so an edited
+document that now yields **fewer** chunks leaves no orphaned trailing points. Each
+embed/upsert batch is wrapped so one bad batch is logged and skipped (reported in
+`IngestStats.failed`) rather than aborting the whole run.
 
 ## 4. Vector-Store Schema (Deliverable #2)
 
@@ -87,9 +90,11 @@ Payload indexes declared at `ensure_collection` time → metadata filtering (inc
 ## 5. Configuration (config-driven / on-prem)
 
 `config.yaml` is the readable source of truth; any field is overridable via
-`RAG__<SECTION>__<KEY>` env vars / `.env` (env wins). Sections: `embedding`,
-`chunking`, `qdrant`, `hybrid`, `paths`, `dataset`, `api`, `logging`. Model path,
-store host/port, and collection name are all config — nothing cloud is hard-coded.
+`RAG__<SECTION>__<KEY>` env vars / `.env` (env wins). Sections: `embedding` (incl.
+`models_dir` / `local_files_only`), `chunking`, `qdrant` (incl. HNSW + quantization),
+`hybrid` (incl. BM25 `avg_len` + prefetch depth), `rerank`, `paths`, `dataset`, `api`,
+`logging`. Model path, store host/port, and collection name are all config — nothing
+cloud is hard-coded, and `local_files_only` makes the whole stack air-gappable.
 
 ## 6. Reproducibility — the ≤3 commands
 
@@ -109,7 +114,9 @@ decoupled.
 
 ## 8. Status
 
-Architecture locked; repository scaffolded (infra/config real, pipeline logic as
-documented stubs). Implementation proceeds per the build order in
-[`01_requirements_and_tasks.md`](01_requirements_and_tasks.md) §7: dataset → ingestion
-→ API → eval → hybrid → UI → diagram.
+Complete and measured. All pipeline stages are implemented, validated end-to-end on a
+120-doc / 150-chunk corpus, and covered by unit + integration tests. Headline eval over
+30 paraphrased ground-truth queries: Dense Hit@5 0.60, BM25 0.93, Hybrid 0.90, and
+**Hybrid+reranker** the best on ranking precision (Hit@1 0.73, MRR 0.814); metadata
+filtering at 100% precision / 91% recall. Full results + per-category breakdown in
+[`03_eval_results.md`](03_eval_results.md).

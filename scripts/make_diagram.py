@@ -86,7 +86,7 @@ def main() -> Path:
     box(ax, 49, 67, 18, 15, "Chunker",
         "token-aware recursive\n400/50 tok\nstructure separators", INGEST, INGEST_E)
     box(ax, 71, 67, 25, 15, "Embedder",
-        "Dense: bge-small-en-v1.5 (384-d, L2)\nSparse: BM25 (fastembed)\nbatched", INGEST, INGEST_E)
+        "Dense: bge-small-en-v1.5 (384-d, L2)\nSparse: BM25 (fastembed)\noffline-capable (local cache)", INGEST, INGEST_E)
 
     arrow(ax, (23, 74.5), (27, 74.5))
     arrow(ax, (45, 74.5), (49, 74.5))
@@ -106,8 +106,8 @@ def main() -> Path:
     # ── serving ──────────────────────────────────────────────────────────────
     ax.text(3.2, 31, "SERVING  (online)", ha="left", va="center",
             fontsize=9, fontweight="bold", color=SERVE_E)
-    box(ax, 30, 13, 40, 16, "FastAPI  (singletons loaded at startup)",
-        "POST /search          semantic\nPOST /search/filtered   + metadata / date range\nPOST /search/hybrid     dense + BM25, RRF\nGET  /health", SERVE, SERVE_E)
+    box(ax, 30, 13, 40, 16, "FastAPI  +  cross-encoder reranker",
+        "POST /search          semantic\nPOST /search/filtered   + metadata / date range\nPOST /search/hybrid     dense + BM25, RRF\n-> rerank top-N (bge-reranker)  ·  GET /health", SERVE, SERVE_E)
 
     # qdrant <-> api (query / hits)
     arrow(ax, (45, 38), (45, 29), color=SERVE_E)
@@ -119,7 +119,7 @@ def main() -> Path:
 
     # clients: UI + Eval
     box(ax, 4, 13, 20, 16, "Streamlit UI",
-        "query box\n+ filters\n+ hybrid toggle", SERVE, SERVE_E)
+        "query box\n+ filters\n+ mode select", SERVE, SERVE_E)
     box(ax, 76, 13, 20, 16, "Evaluation",
         "Hit@1 / Hit@5 / MRR\nsemantic vs hybrid\n-> 03_eval_results.md", SERVE, SERVE_E)
 

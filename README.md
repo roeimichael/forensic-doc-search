@@ -13,15 +13,18 @@ and **structured metadata** (doc_type, case_id, date) — with **no cloud APIs**
 
 ## Highlights
 
-- **On-prem only** — local `sentence-transformers` embeddings (default
-  `BAAI/bge-small-en-v1.5`), self-hosted **Qdrant**. No OpenAI/Cohere/Google.
-- **Config-driven** — model, store host/port, collection, chunking all in
-  `config.yaml` / `.env` (swap the embedding model with zero code changes).
-- **Idempotent ingestion** — deterministic UUID5 chunk ids + Qdrant upsert; re-runs
-  never duplicate.
-- **Three search modes** — semantic, metadata-filtered (incl. date ranges), and
-  **hybrid** (dense + BM25, RRF-fused server-side).
-- **Measured** — Hit@1 / Hit@5 / MRR over a generated ground-truth set.
+- **On-prem & air-gappable** — local `sentence-transformers` embeddings + reranker,
+  self-hosted **Qdrant**. No OpenAI/Cohere/Google. `rag fetch-models` warms the cache
+  once so `local_files_only` runs need no network.
+- **Config-driven** — model, store, chunking, hybrid, reranker all in `config.yaml` /
+  `.env` (swap the embedding model with zero code changes).
+- **Idempotent ingestion** — deterministic UUID5 chunk ids + Qdrant upsert, with a
+  per-`source_file` sweep so re-ingesting an edited (shorter) doc leaves no orphans.
+- **Three search modes + reranking** — semantic, metadata-filtered (incl. date ranges),
+  and **hybrid** (dense + BM25, server-side RRF); a cross-encoder reranks the top
+  candidates of every mode.
+- **Honestly measured** — Hit@1 / Hit@5 / MRR with Wilson CIs, per-query-category and
+  precision/recall breakdowns, over **paraphrased** (not verbatim) ground-truth queries.
 
 ## Quickstart (≤ 3 commands)
 
@@ -41,10 +44,14 @@ No `make`? Run the equivalent directly:
 
 ```bash
 python scripts/wait_for_qdrant.py
+rag fetch-models      # (once, online) cache embed/sparse/reranker models for offline use
 rag generate          # build data/generated/ + ground_truth.json
 rag ingest            # load → chunk → embed → upsert
 uvicorn ragforce.api.app:app --host 0.0.0.0 --port 8000
 ```
+
+> **Air-gapped?** After `rag fetch-models`, set `RAG__EMBEDDING__LOCAL_FILES_ONLY=true`
+> to forbid any network call at ingest/serve time.
 
 ## API
 
@@ -53,14 +60,19 @@ uvicorn ragforce.api.app:app --host 0.0.0.0 --port 8000
 | POST | `/search` | `{query, top_k=5}` | Semantic search |
 | POST | `/search/filtered` | `{query, filters, top_k=5}` | Semantic + metadata filter |
 | POST | `/search/hybrid` | `{query, filters, top_k=5}` | Dense + BM25 (RRF) |
-| GET | `/health` | — | Store stats (count, collection, model) |
+| GET | `/health` | — | Store stats (chunk_count, collection, model) |
 
-Response: `{"results": [{"chunk_id", "score", "text", "metadata"}]}`.
+Response: `{"results": [{"chunk_id", "score", "text", "metadata"}]}`. Inputs are
+validated (`top_k` 1–100, non-empty query); filters are allow-listed to indexed
+fields; a store outage returns **503**, an invalid filter **422**, and `/health`
+never throws. Every mode reranks its top candidates with the cross-encoder.
 
 ## Search UI _(bonus)_
 
-A thin Streamlit client over the API — query box, `top_k` slider, hybrid toggle, and
-a `doc_type` / `case_id` / `date` filter panel. Start the API first, then:
+A thin Streamlit client over the API — query box, `top_k` slider, an explicit
+**Semantic / Metadata-filtered / Hybrid** mode selector, and a `doc_type` / `case_id`
+/ `date` filter panel. Corpus text is rendered as plain text (no markdown injection).
+Start the API first, then:
 
 ```bash
 streamlit run ui/streamlit_app.py     # point at the API via RAG_API_URL (default http://localhost:8000)
@@ -69,20 +81,26 @@ streamlit run ui/streamlit_app.py     # point at the API via RAG_API_URL (defaul
 ## Evaluation
 
 ```bash
-rag eval     # writes docs/03_eval_results.md (Hit@1, Hit@5, MRR; semantic vs hybrid)
+rag eval     # writes docs/03_eval_results.md (per-retriever Hit@1/Hit@5/MRR + breakdowns)
 ```
 
-Over **30** `(query, expected_document)` ground-truth pairs from the generated corpus:
+Over **30** `(query, expected_document)` pairs whose queries **paraphrase** the planted
+signature (lexically disjoint from the source — so this measures retrieval, not verbatim
+string matching):
 
-| Retriever | Hit@1 | Hit@5 | MRR |
-|-----------|------:|------:|----:|
-| Dense (semantic) | 0.47 | 0.60 | 0.534 |
-| **Hybrid (dense + BM25, RRF)** | **0.60** | **0.97** | **0.750** |
+| Retriever | Hit@1 | Hit@5 (95% CI) | MRR |
+|-----------|------:|:--------------:|----:|
+| Dense (semantic) | 0.47 | 0.60 (0.42–0.75) | 0.527 |
+| BM25 (sparse) | 0.70 | 0.93 (0.79–0.98) | 0.783 |
+| Hybrid (RRF) | 0.53 | 0.90 (0.74–0.97) | 0.696 |
+| **Hybrid + reranker** | **0.73** | 0.90 (0.74–0.97) | **0.814** |
 
-Hybrid lifts Hit@5 by **+37 pts** (recovering 11 dense misses) because forensic
-queries hinge on rare tokens — proper names, specific items — that BM25 matches
-exactly while a small dense model blurs them. Metadata-filtered queries return the
-expected document **91%** of the time. Full analysis:
+The honest story (not the tidy one): on this small model, **pure dense is weak on
+paraphrased queries** (Hit@5 0.40 on the paraphrase subset vs 1.00 on rare-token entity
+queries); **BM25 is a strong forensic baseline** (rare names/items); naive RRF fusion
+doesn't beat BM25 alone; and the **cross-encoder reranker is the real lever** for ranking
+precision (Hit@1 0.53→0.73, best MRR). Metadata filtering: **100% precision, 91% recall**
+over 22 filtered queries. Full analysis + per-category table:
 [`docs/03_eval_results.md`](docs/03_eval_results.md).
 
 ## Project Structure
@@ -90,12 +108,12 @@ expected document **91%** of the time. Full analysis:
 ```
 src/ragforce/
   loaders/     txt/pdf/json/eml → Document   (graceful skip on corrupt files)
-  chunking/    token-aware recursive splitter (size tracks the embedding model)
-  embedding/   dense (sentence-transformers) + sparse (fastembed BM25)
-  store/       Qdrant access, collection schema, UUID5 ids + payload (idempotency)
-  pipeline/    ingest orchestrator (load → chunk → embed → upsert)
-  api/         FastAPI: /search, /search/filtered, /search/hybrid, /health
-  eval/        Hit@K / MRR metrics + evaluation runner
+  chunking/    token-aware recursive splitter (exact char_span provenance)
+  embedding/   dense (sentence-transformers) + sparse (fastembed BM25) + cross-encoder reranker
+  store/       Qdrant access, collection schema, UUID5 ids + payload (idempotency + orphan sweep)
+  pipeline/    ingest orchestrator (load → chunk → embed → upsert, batch-resilient)
+  api/         FastAPI: /search, /search/filtered, /search/hybrid, /health (validated, guarded)
+  eval/        Hit@K / MRR + Wilson CIs, per-category + precision/recall
   dataset/     synthetic, real-text-seeded corpus generator + ground truth
 ui/            Streamlit search UI
 config.yaml    primary config   |   .env.example  runtime overrides
@@ -115,14 +133,19 @@ docs/          requirements, architecture + schema, eval results
 - **Vector store — Qdrant.** Native sparse vectors + server-side RRF for hybrid,
   payload pre-filtering with datetime ranges for robust metadata filtering, and a
   one-command Docker spin-up.
+- **Reranking — `bge-reranker-base` cross-encoder.** First-stage retrieval is
+  recall-oriented; the cross-encoder re-reads each (query, passage) pair jointly and
+  is the single biggest lever for top-rank precision (see eval). Config-gated, on by
+  default, fully local.
 
 Full rationale: [`docs/02_architecture.md`](docs/02_architecture.md).
 
 ## Future Work
 
-- Per-`source_file` stale-id sweep so shrinking a document removes orphan chunks.
+- Larger first-stage embedder (`bge-base`) once latency budget allows; quantization
+  is wired (`qdrant.quantization`) to keep that cheap.
 - Optional local LLM (Ollama) for grounded answer generation over retrieved chunks.
-- Weighted-score fusion as an alternative to RRF; reranking.
+- A held-out, multi-seed eval with relational/temporal query categories for tighter CIs.
 
 ## License
 
