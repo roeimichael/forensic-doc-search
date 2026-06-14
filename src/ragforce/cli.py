@@ -75,6 +75,27 @@ def eval(
     typer.echo("Report -> docs/03_eval_results.md")
 
 
+@app.command(name="fetch-models")
+def fetch_models() -> None:
+    """Pre-download all local models into the HF cache (run once, online).
+
+    After this, set ``embedding.local_files_only: true`` (and optionally
+    ``models_dir``) to run fully air-gapped — no network calls at ingest/serve time.
+    """
+    from ragforce.config import load_settings
+    from ragforce.embedding import build_embedder, build_reranker
+
+    s = load_settings()
+    s.embedding.local_files_only = False  # force the fetch even if configured offline
+    typer.echo(
+        f"Fetching models -> dense={s.embedding.model_name}, sparse={s.hybrid.sparse_model}, "
+        f"rerank={s.rerank.model_name if s.rerank.enabled else '(disabled)'}"
+    )
+    build_embedder(s)
+    build_reranker(s)
+    typer.echo("Done. Models cached; set embedding.local_files_only=true to run offline.")
+
+
 @app.command()
 def health() -> None:
     """Print vector-store stats: point count, collection name, embedding model."""

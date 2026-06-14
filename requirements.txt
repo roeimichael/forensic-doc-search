@@ -5,9 +5,10 @@
 #   pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu
 
 # ── ingestion + retrieval (validated end-to-end) ─────────────────────────────
-sentence-transformers==5.5.1
+sentence-transformers==5.5.1     # dense embeddings + cross-encoder reranker
 transformers==5.12.0
 torch==2.12.0
+numpy<3                          # pin: NumPy-2 ABI must match torch/transformers
 qdrant-client==1.13.3            # matches the Qdrant v1.13 server in docker-compose
 fastembed==0.8.0                 # BM25 sparse vectors for hybrid search
 pypdf==6.13.2

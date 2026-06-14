@@ -30,13 +30,19 @@ class DenseEmbedder:
         passage_prefix: str = "",
         normalize: bool = True,
         max_seq_length: int | None = None,
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
     ) -> None:
-        self._model = SentenceTransformer(model_name, device=device)
+        self._model = SentenceTransformer(
+            model_name, device=device,
+            cache_folder=cache_folder, local_files_only=local_files_only,
+        )
         if max_seq_length is not None:
             self._model.max_seq_length = max_seq_length
         self._query_prefix = query_prefix
         self._passage_prefix = passage_prefix
         self._normalize = normalize
+        self._max_seq_length = max_seq_length or self._model.max_seq_length
 
     @property
     def dim(self) -> int:
@@ -45,6 +51,11 @@ class DenseEmbedder:
         get_dim = getattr(self._model, "get_embedding_dimension", None) or \
             self._model.get_sentence_embedding_dimension
         return int(get_dim())
+
+    @property
+    def max_seq_length(self) -> int:
+        """Max input tokens the model accepts before silent truncation."""
+        return int(self._max_seq_length)
 
     @property
     def tokenizer(self) -> Any:

@@ -13,11 +13,12 @@ authors = [{ name = "Roei Michael" }]
 
 # Runtime dependencies. NOTE: sentence-transformers pulls torch (heavy). For a
 # CPU-only install, pre-install the CPU wheel:
-#   pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cpu
+#   pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu
 dependencies = [
-    "sentence-transformers==5.5.1",  # local dense embeddings (HEAVY: torch + transformers)
+    "sentence-transformers==5.5.1",  # dense embeddings + cross-encoder reranker (HEAVY: torch)
     "transformers==5.12.0",
     "torch==2.12.0",
+    "numpy<3",                       # NumPy-2 ABI must match torch/transformers
     "qdrant-client==1.13.3",         # matches the Qdrant v1.13 server in docker-compose
     "fastembed==0.8.0",              # BM25 sparse vectors for native hybrid search
     "pypdf==6.13.2",                 # PDF text extraction

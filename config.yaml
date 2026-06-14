@@ -17,6 +17,10 @@ embedding:
   query_prefix: "Represent this sentence for searching relevant passages: "
   passage_prefix: ""
   batch_size: 64
+  # Offline / air-gap: pre-fetch once with `rag fetch-models`, then set
+  # local_files_only: true (and optionally models_dir) to forbid any network call.
+  models_dir: null
+  local_files_only: false
 
 chunking:
   chunk_size: 400        # tokens (counted with the embedding model's tokenizer). MiniLM: ~200
@@ -31,12 +35,25 @@ qdrant:
   sparse_vector_name: "sparse"
   upsert_batch_size: 128
   recreate_on_ingest: false   # true wipes + rebuilds the collection on ingest
+  timeout: 30.0               # client request timeout (seconds)
+  hnsw_m: 16                  # ANN graph degree
+  hnsw_ef_construct: 128      # build-time accuracy/speed trade-off
+  hnsw_ef_search: null        # search-time ef (null -> Qdrant default)
+  quantization: false         # int8 scalar quantization (cheaper RAM/disk)
 
 hybrid:
   enabled: true
   sparse_model: "Qdrant/bm25"   # fastembed sparse encoder
   fusion: "rrf"                 # server-side Reciprocal Rank Fusion via Qdrant Query API
   top_k: 5
+  avg_len: 400                  # BM25 avg doc length — must track chunk_size
+  prefetch_multiplier: 10       # per-branch candidates before fusion = max(top_k*mult, min)
+  prefetch_min: 50
+
+rerank:
+  enabled: true                 # cross-encoder rerank of fused candidates (quality lever)
+  model_name: "BAAI/bge-reranker-base"
+  top_n: 50                     # candidates to rerank before truncating to top_k
 
 paths:
   source_dir: "data/generated"

@@ -19,8 +19,20 @@ class SparseEmbedder:
     :func:`ragforce.store.points.to_sparse_vector` converts them to Qdrant's format.
     """
 
-    def __init__(self, model_name: str = "Qdrant/bm25") -> None:
-        self._model = SparseTextEmbedding(model_name=model_name)
+    def __init__(
+        self,
+        model_name: str = "Qdrant/bm25",
+        *,
+        avg_len: float = 400.0,
+        cache_dir: str | None = None,
+        local_files_only: bool = False,
+    ) -> None:
+        # avg_len MUST track the chunk size — fastembed's default (256) mis-normalizes
+        # BM25 term frequencies for our 400-token chunks across the whole corpus.
+        self._model = SparseTextEmbedding(
+            model_name=model_name, avg_len=avg_len,
+            cache_dir=cache_dir, local_files_only=local_files_only,
+        )
 
     def embed_passages(self, texts: list[str], *, batch_size: int = 64) -> list[Any]:
         """Embed chunks into BM25 sparse vectors (row-aligned with the dense batch)."""

@@ -8,9 +8,6 @@ Two layers, env wins over file:
 The nested models below document the full config schema *in code*. They carry
 defaults matching ``config.yaml`` so the structure is usable in tests without a
 file present.
-
-STATUS: schema is real; :func:`load_settings` env-over-yaml wiring is a stub for
-the implementation step (see TODO).
 """
 
 from __future__ import annotations
@@ -37,6 +34,11 @@ class EmbeddingCfg(BaseModel):
     query_prefix: str = "Represent this sentence for searching relevant passages: "
     passage_prefix: str = ""
     batch_size: int = 64
+    # Offline / air-gap support. ``models_dir`` is the local HF cache the models are
+    # loaded from; ``local_files_only`` forbids any network fetch (fail instead).
+    # Pre-populate the cache once online with ``rag fetch-models``.
+    models_dir: str | None = None
+    local_files_only: bool = False
 
 
 class ChunkingCfg(BaseModel):
@@ -53,6 +55,12 @@ class QdrantCfg(BaseModel):
     sparse_vector_name: str = "sparse"
     upsert_batch_size: int = 128
     recreate_on_ingest: bool = False
+    timeout: float = 30.0          # client request timeout (seconds)
+    # ANN index tuning (exposed rather than left at library defaults).
+    hnsw_m: int = 16
+    hnsw_ef_construct: int = 128
+    hnsw_ef_search: int | None = None   # None -> Qdrant default
+    quantization: bool = False          # int8 scalar quantization (cheaper RAM/disk)
 
 
 class HybridCfg(BaseModel):
@@ -60,6 +68,20 @@ class HybridCfg(BaseModel):
     sparse_model: str = "Qdrant/bm25"
     fusion: str = "rrf"
     top_k: int = 5
+    # BM25 average document length — must track chunk_size or length-normalization
+    # is miscalibrated. fastembed's default (256) is wrong for 400-token chunks.
+    avg_len: int = 400
+    # Per-branch candidate depth before fusion: max(top_k * multiplier, min).
+    prefetch_multiplier: int = 10
+    prefetch_min: int = 50
+
+
+class RerankCfg(BaseModel):
+    """Optional cross-encoder reranker over the fused candidate set (quality lever)."""
+
+    enabled: bool = True
+    model_name: str = "BAAI/bge-reranker-base"
+    top_n: int = 50    # candidates to rerank before truncating to top_k
 
 
 class PathsCfg(BaseModel):
@@ -95,6 +117,7 @@ class Settings(BaseSettings):
     chunking: ChunkingCfg = Field(default_factory=ChunkingCfg)
     qdrant: QdrantCfg = Field(default_factory=QdrantCfg)
     hybrid: HybridCfg = Field(default_factory=HybridCfg)
+    rerank: RerankCfg = Field(default_factory=RerankCfg)
     paths: PathsCfg = Field(default_factory=PathsCfg)
     dataset: DatasetCfg = Field(default_factory=DatasetCfg)
     api: ApiCfg = Field(default_factory=ApiCfg)
