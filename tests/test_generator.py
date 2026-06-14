@@ -42,6 +42,14 @@ def test_generation_is_deterministic(tmp_path) -> None:
     assert names_a == names_b
 
 
+def test_regeneration_is_clean_slate(tmp_path) -> None:
+    # Re-running into the same dir with a different n must not leave stale files.
+    generate(n=20, seed=1, out_dir=tmp_path)
+    generate(n=16, seed=2, out_dir=tmp_path)
+    docs = [p for p in tmp_path.glob("*") if p.name != "ground_truth.json"]
+    assert len(docs) == 16
+
+
 def test_n_below_needle_count_is_rejected(tmp_path) -> None:
     with pytest.raises(ValueError):
         generate(n=5, seed=1, out_dir=tmp_path / "nope")

@@ -256,6 +256,12 @@ def generate(
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
 
+    # Clean slate: remove artifacts from a previous run so the corpus is exactly
+    # `n` docs and fully reproducible (no stale files leaking into ingestion).
+    for old in out.iterdir():
+        if old.is_file() and (old.suffix.lower() in {f".{f}" for f in FORMATS} or old.name == "ground_truth.json"):
+            old.unlink()
+
     # Assign each needle to a distinct document index.
     needle_idx = dict(zip(rng.sample(range(n), len(_NEEDLES)), _NEEDLES))
 
