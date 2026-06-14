@@ -162,6 +162,20 @@ class VectorStore:
         )
         return [_to_hit(p) for p in res.points]
 
+    def search_sparse(
+        self, sparse_vec: Any, *, top_k: int, query_filter: Any | None = None
+    ) -> list[SearchHit]:
+        """BM25-only (sparse) search — the lexical baseline for eval ablations."""
+        res = self._client.query_points(
+            self._collection,
+            query=to_sparse_vector(sparse_vec),
+            using=self._sparse,
+            limit=top_k,
+            query_filter=query_filter,
+            with_payload=True,
+        )
+        return [_to_hit(p) for p in res.points]
+
     def search_hybrid(
         self,
         dense_vec: list[float],

@@ -6,6 +6,8 @@ without loading a real model — fast and deterministic.
 
 from __future__ import annotations
 
+import pytest
+
 from ragforce.chunking import Chunker
 from ragforce.models import Document
 
@@ -47,6 +49,26 @@ def test_short_text_is_single_chunk() -> None:
     chunks = ch.chunk(_doc("a short witness statement with only a handful of words"))
     assert len(chunks) == 1
     assert chunks[0].char_span[0] <= chunks[0].char_span[1]
+
+
+def test_real_tokenizer_never_exceeds_max_seq_length() -> None:
+    # The WordTokenizer can't catch sub-word expansion (the very thing the chunker
+    # exists to bound). With the real tokenizer, no chunk may exceed the model window.
+    try:
+        from transformers import AutoTokenizer
+
+        tok = AutoTokenizer.from_pretrained("BAAI/bge-small-en-v1.5")
+    except Exception:  # noqa: BLE001 — model not cached / offline
+        pytest.skip("bge tokenizer unavailable (offline / not cached)")
+    max_seq = 512
+    # token-dense text: many long, sub-word-heavy pseudowords
+    text = ". ".join("antidisestablishmentarianism pseudopseudohypoparathyroidism " * 8 for _ in range(40))
+    ch = Chunker(tok, chunk_size=400, chunk_overlap=50, min_chunk_size=16)
+    chunks = ch.chunk(_doc(text))
+    assert len(chunks) > 1
+    for c in chunks:
+        n = len(tok.encode(c.text, add_special_tokens=True))
+        assert n <= max_seq, f"chunk has {n} tokens > {max_seq}"
 
 
 def test_char_span_is_exact_provenance() -> None:

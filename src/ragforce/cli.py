@@ -67,11 +67,14 @@ def eval(
 
     configure_logging()
     m = run(load_settings(), ground_truth_path=ground_truth)
-    d, h = m["dense"], m["hybrid"]
-    typer.echo(f"DENSE   Hit@1={d['hit@1']:.2f}  Hit@5={d['hit@5']:.2f}  MRR={d['mrr']:.3f}")
-    typer.echo(f"HYBRID  Hit@1={h['hit@1']:.2f}  Hit@5={h['hit@5']:.2f}  MRR={h['mrr']:.3f}")
-    if m["filtered_accuracy"] is not None:
-        typer.echo(f"Filtered accuracy: {m['filtered_accuracy']:.0%} ({m['filtered_total']} queries)")
+    for nm in m["retrievers"]:
+        s = m[nm]
+        typer.echo(f"{nm:14s} Hit@1={s['hit@1']:.2f}  Hit@5={s['hit@5']:.2f}  MRR={s['mrr']:.3f}")
+    if m["filter_recall"] is not None:
+        typer.echo(
+            f"Filter: precision={m['filter_precision']:.0%} recall={m['filter_recall']:.0%} "
+            f"({m['filtered_total']} queries)"
+        )
     typer.echo("Report -> docs/03_eval_results.md")
 
 

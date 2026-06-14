@@ -10,6 +10,21 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 
+def wilson_interval(successes: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """Wilson score 95% confidence interval for a binomial proportion.
+
+    Reported alongside Hit@K because at small ``n`` a point estimate (e.g. 0.97 from
+    30 queries) overstates precision; the interval shows how much the metric can move.
+    """
+    if n == 0:
+        return (0.0, 0.0)
+    p = successes / n
+    denom = 1 + z * z / n
+    center = (p + z * z / (2 * n)) / denom
+    half = (z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5)) / denom
+    return (max(0.0, center - half), min(1.0, center + half))
+
+
 def hit_at_k(ranked_source_files: Sequence[str], expected: str, k: int) -> bool:
     """True if ``expected`` appears in the first ``k`` retrieved source files."""
     return expected in ranked_source_files[:k]
