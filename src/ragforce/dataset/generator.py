@@ -257,10 +257,10 @@ def _render_report(rng: Random, case: Case) -> str:
             f"{w2} reported hearing raised voices and an engine shortly before the suspect left the area.",
         ]),
         rng.choice([
-            f"Modus operandi: The method used in this offence is consistent with a small number of "
-            f"recent incidents in the wider district, where access was gained quickly and high-value, "
-            f"portable items were targeted before the offender left in a waiting vehicle. Intelligence "
-            f"checks against those reports are being carried out as part of this investigation.",
+            "Modus operandi: The method used in this offence is consistent with a small number of "
+            "recent incidents in the wider district, where access was gained quickly and high-value, "
+            "portable items were targeted before the offender left in a waiting vehicle. Intelligence "
+            "checks against those reports are being carried out as part of this investigation.",
             f"Context: This is the second report of {case.crime_type} on or near {case.location} in "
             f"recent months. Patrol patterns for the area are being reviewed, and {case.officer} has "
             f"flagged the location for additional overnight attention pending the outcome of enquiries.",
@@ -311,14 +311,14 @@ def _render_transcript(rng: Random, case: Case) -> str:
     turns = [
         f"Officer ({case.officer}): {opener}",
         f"Witness ({subject}): Yes. I saw {case.crime_type} near {case.location}, {case.time}.",
-        f"Officer: Can you describe the person involved?",
+        "Officer: Can you describe the person involved?",
         f"Witness: It was {case.suspect_build} wearing {case.suspect_clothes}.",
         rng.choice([
             "Officer: Did they say anything you remember?",
             "Officer: Was anyone else mentioned during the incident?",
         ]),
         f"Witness: He kept bringing up someone called {case.quote_name}. It stuck with me.",
-        f"Officer: Is there anything else you would like to add?",
+        "Officer: Is there anything else you would like to add?",
         rng.choice([
             "Witness: Only that it happened very fast. I called it in straight away.",
             "Witness: No, that is everything I can recall clearly.",

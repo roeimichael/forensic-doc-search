@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 from ragforce.api.filters import build_filter
 from ragforce.embedding import build_embedder
-from ragforce.eval.metrics import hit_at_k, mrr, reciprocal_rank
+from ragforce.eval.metrics import hit_at_k, mrr
 from ragforce.logging_setup import get_logger
 from ragforce.models import SearchHit
 from ragforce.store import VectorStore

@@ -100,7 +100,6 @@ class Chunker:
         if not text:
             return []
         if self._token_len(text) <= self._chunk_size:
-            start = offset + (len(text) - len(text.lstrip()))
             return [(text, offset)]
         if not separators:
             return [(text, offset)]

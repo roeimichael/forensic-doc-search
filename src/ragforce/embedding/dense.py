@@ -41,7 +41,10 @@ class DenseEmbedder:
     @property
     def dim(self) -> int:
         """Embedding dimension reported by the model (asserted against config)."""
-        return int(self._model.get_sentence_embedding_dimension())
+        # method renamed in sentence-transformers 5.x; keep both for version robustness
+        get_dim = getattr(self._model, "get_embedding_dimension", None) or \
+            self._model.get_sentence_embedding_dimension
+        return int(get_dim())
 
     @property
     def tokenizer(self) -> Any:

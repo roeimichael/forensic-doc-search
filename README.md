@@ -9,9 +9,7 @@ and **structured metadata** (doc_type, case_id, date) — with **no cloud APIs**
 > task breakdown: [`docs/01_requirements_and_tasks.md`](docs/01_requirements_and_tasks.md).
 > Design & schema: [`docs/02_architecture.md`](docs/02_architecture.md).
 
-> **Status: scaffold.** Infrastructure/config are in place; pipeline modules are
-> documented stubs being implemented in order (dataset → ingestion → API → eval →
-> hybrid → UI). Items marked _TODO_ below are not yet runnable.
+![Architecture](docs/architecture.png)
 
 ## Highlights
 
@@ -61,8 +59,11 @@ Response: `{"results": [{"chunk_id", "score", "text", "metadata"}]}`.
 
 ## Search UI _(bonus)_
 
+A thin Streamlit client over the API — query box, `top_k` slider, hybrid toggle, and
+a `doc_type` / `case_id` / `date` filter panel. Start the API first, then:
+
 ```bash
-streamlit run ui/streamlit_app.py     # query box + filters + results (TODO)
+streamlit run ui/streamlit_app.py     # point at the API via RAG_API_URL (default http://localhost:8000)
 ```
 
 ## Evaluation
@@ -70,13 +71,25 @@ streamlit run ui/streamlit_app.py     # query box + filters + results (TODO)
 ```bash
 rag eval     # writes docs/03_eval_results.md (Hit@1, Hit@5, MRR; semantic vs hybrid)
 ```
-_Results table: TODO (populated after the eval step)._
+
+Over **30** `(query, expected_document)` ground-truth pairs from the generated corpus:
+
+| Retriever | Hit@1 | Hit@5 | MRR |
+|-----------|------:|------:|----:|
+| Dense (semantic) | 0.47 | 0.60 | 0.534 |
+| **Hybrid (dense + BM25, RRF)** | **0.60** | **0.97** | **0.750** |
+
+Hybrid lifts Hit@5 by **+37 pts** (recovering 11 dense misses) because forensic
+queries hinge on rare tokens — proper names, specific items — that BM25 matches
+exactly while a small dense model blurs them. Metadata-filtered queries return the
+expected document **91%** of the time. Full analysis:
+[`docs/03_eval_results.md`](docs/03_eval_results.md).
 
 ## Project Structure
 
 ```
 src/ragforce/
-  loaders/     txt/pdf/json → Document   (graceful skip on corrupt files)
+  loaders/     txt/pdf/json/eml → Document   (graceful skip on corrupt files)
   chunking/    token-aware recursive splitter (size tracks the embedding model)
   embedding/   dense (sentence-transformers) + sparse (fastembed BM25)
   store/       Qdrant access, collection schema, UUID5 ids + payload (idempotency)
