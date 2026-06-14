@@ -106,6 +106,7 @@ def health() -> None:
     store = VectorStore(
         host=s.qdrant.host, port=s.qdrant.port, collection=s.qdrant.collection,
         dense_vector_name=s.qdrant.dense_vector_name, sparse_vector_name=s.qdrant.sparse_vector_name,
+        timeout=s.qdrant.timeout,
     )
     stats = store.stats()
     stats["embedding_model"] = s.embedding.model_name

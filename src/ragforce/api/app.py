@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
         collection=settings.qdrant.collection,
         dense_vector_name=settings.qdrant.dense_vector_name,
         sparse_vector_name=settings.qdrant.sparse_vector_name,
+        timeout=settings.qdrant.timeout,
     )
     app.state.settings = settings
     app.state.dense = dense

@@ -9,34 +9,38 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SearchRequest(BaseModel):
-    """POST /search body."""
+    """POST /search body. Inputs are validated before they reach the model/store."""
 
-    query: str
-    top_k: int = 5
+    query: str = Field(min_length=1, max_length=2048)
+    top_k: int = Field(default=5, ge=1, le=100)
+
+    @field_validator("query")
+    @classmethod
+    def _non_blank(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("query must not be empty or whitespace")
+        return v
 
 
-class FilteredRequest(BaseModel):
+class FilteredRequest(SearchRequest):
     """POST /search/filtered body. ``filters`` maps metadata field → value.
 
     e.g. {"doc_type": "witness_statement", "date": "2024-01-15"}. A ``date`` given
     as a ``{"gte": ..., "lte": ...}`` object is treated as a range (T3.2).
     """
 
-    query: str
     filters: dict[str, Any] = Field(default_factory=dict)
-    top_k: int = 5
 
 
-class HybridRequest(BaseModel):
+class HybridRequest(SearchRequest):
     """POST /search/hybrid body (dense + BM25, RRF-fused)."""
 
-    query: str
     filters: dict[str, Any] = Field(default_factory=dict)
-    top_k: int = 5
 
 
 class SearchResultItem(BaseModel):
@@ -55,9 +59,9 @@ class SearchResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    """GET /health payload."""
+    """GET /health payload. Never raises — reports degraded state instead."""
 
     status: str
     collection: str
-    document_count: int
+    chunk_count: int          # points == chunks (not source documents)
     embedding_model: str

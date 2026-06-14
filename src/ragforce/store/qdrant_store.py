@@ -43,8 +43,9 @@ class VectorStore:
         collection: str,
         dense_vector_name: str = "dense",
         sparse_vector_name: str = "sparse",
+        timeout: float = 30.0,
     ) -> None:
-        self._client = QdrantClient(host=host, port=port)
+        self._client = QdrantClient(host=host, port=port, timeout=timeout)
         self._collection = collection
         self._dense = dense_vector_name
         self._sparse = sparse_vector_name

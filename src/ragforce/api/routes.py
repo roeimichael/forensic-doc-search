@@ -12,12 +12,13 @@ SearchHit → SearchResponse. Dependencies (settings/embedder/store) come from d
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 from fastapi import APIRouter, Depends, HTTPException
+from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 
 from ragforce.api.deps import get_dense, get_settings, get_sparse, get_store
-from ragforce.api.filters import build_filter
+from ragforce.api.filters import FilterError, build_filter
 from ragforce.api.schemas import (
     FilteredRequest,
     HealthResponse,
@@ -29,6 +30,25 @@ from ragforce.api.schemas import (
 from ragforce.models import SearchHit
 
 router = APIRouter()
+
+# Store/transport failures we translate to 503 (service degraded) rather than a raw 500.
+_STORE_ERRORS = (ResponseHandlingException, UnexpectedResponse, ConnectionError, OSError, TimeoutError)
+
+
+def _filter_or_422(filters: dict[str, Any]) -> Any:
+    """Build the Qdrant filter, surfacing an invalid filter as 422 (not 500)."""
+    try:
+        return build_filter(filters)
+    except FilterError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+def _guard(fn: Callable[[], list[SearchHit]]) -> list[SearchHit]:
+    """Run a store call, mapping connection/transport failures to 503."""
+    try:
+        return fn()
+    except _STORE_ERRORS as e:
+        raise HTTPException(status_code=503, detail="vector store unavailable") from e
 
 
 def _to_response(hits: list[SearchHit]) -> SearchResponse:
@@ -43,7 +63,8 @@ def _to_response(hits: list[SearchHit]) -> SearchResponse:
 @router.post("/search", response_model=SearchResponse)
 def search(req: SearchRequest, dense=Depends(get_dense), store=Depends(get_store)) -> SearchResponse:
     """Semantic (dense-vector) search."""
-    hits = store.search_dense(dense.embed_query(req.query), top_k=req.top_k)
+    vec = dense.embed_query(req.query)
+    hits = _guard(lambda: store.search_dense(vec, top_k=req.top_k))
     return _to_response(hits)
 
 
@@ -52,9 +73,9 @@ def search_filtered(
     req: FilteredRequest, dense=Depends(get_dense), store=Depends(get_store)
 ) -> SearchResponse:
     """Semantic search constrained by metadata filters (doc_type / case_id / date[-range])."""
-    hits = store.search_dense(
-        dense.embed_query(req.query), top_k=req.top_k, query_filter=build_filter(req.filters)
-    )
+    qf = _filter_or_422(req.filters)
+    vec = dense.embed_query(req.query)
+    hits = _guard(lambda: store.search_dense(vec, top_k=req.top_k, query_filter=qf))
     return _to_response(hits)
 
 
@@ -68,22 +89,30 @@ def search_hybrid(
     """Hybrid search: dense + BM25 sparse, fused server-side via RRF."""
     if sparse is None:
         raise HTTPException(status_code=400, detail="Hybrid search is disabled (set hybrid.enabled=true).")
-    hits = store.search_hybrid(
-        dense.embed_query(req.query),
-        sparse.embed_query(req.query),
-        top_k=req.top_k,
-        query_filter=build_filter(req.filters),
-    )
+    qf = _filter_or_422(req.filters)
+    dvec, svec = dense.embed_query(req.query), sparse.embed_query(req.query)
+    hits = _guard(lambda: store.search_hybrid(dvec, svec, top_k=req.top_k, query_filter=qf))
     return _to_response(hits)
 
 
 @router.get("/health", response_model=HealthResponse)
 def health(store=Depends(get_store), settings=Depends(get_settings)) -> HealthResponse:
-    """Store stats: document/chunk count, collection name, embedding model."""
-    stats = store.stats()
+    """Store stats: chunk count, collection name, embedding model.
+
+    Never raises — if the store is unreachable, reports ``status="unavailable"`` so
+    a monitor gets a structured signal instead of a 500.
+    """
+    model = settings.embedding.model_name
+    collection = settings.qdrant.collection
+    try:
+        stats = store.stats()
+    except Exception:  # noqa: BLE001 — health must never propagate
+        return HealthResponse(
+            status="unavailable", collection=collection, chunk_count=0, embedding_model=model
+        )
     return HealthResponse(
         status=stats.get("status", "unknown"),
         collection=stats["collection"],
-        document_count=stats["points_count"],
-        embedding_model=settings.embedding.model_name,
+        chunk_count=stats["points_count"],
+        embedding_model=model,
     )
