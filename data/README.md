@@ -1,24 +1,32 @@
 # Data
 
-## `seeds/seed_snippets.jsonl`
-Small snippets of realistic prose used to *seed* the synthetic generator so the
-generated documents read naturally. Each line: `{"id", "doc_type_hint", "text",
-"source", "license"}`. Keep snippets short and from clearly permissive/public-domain
-sources; record provenance + license per line in the `source`/`license` fields.
-
-> The placeholder shipped here is illustrative. Replace/expand with public-domain or
-> permissively licensed text (e.g. public-domain legal/police report samples,
-> Wikipedia paragraphs under CC BY-SA with attribution).
-
 ## `generated/` (git-ignored)
-Produced by `rag generate` — the document corpus (`.txt`/`.pdf`/`.json`) plus
-`ground_truth.json`. Not committed because it is fully reproducible from the seed
-file + a fixed RNG seed (`dataset.seed` in `config.yaml`). Regenerate with:
+Produced by `rag generate` — a **scenario-driven** synthetic forensic corpus plus
+`ground_truth.json`. Not committed because it is fully reproducible from a fixed RNG
+seed (`dataset.seed` in `config.yaml`). Regenerate with:
 
 ```bash
-rag generate            # or: python scripts/generate_dataset.py
+rag generate              # default 120 docs / 30 cases
+rag generate --n 80 --seed 7
 ```
 
-Metadata is **controlled by the generator** (doc_type, case_id, date), encoded in
-the filename convention `"<doc_type>__<case_id>__<YYYY-MM-DD>__<slug>.<ext>"` so the
-loader recovers it deterministically.
+### How it's built
+The generator models distinct **case scenarios** rather than stitching snippets:
+
+- `ceil(n/4)` cases, each with structured facts (crime, location, date, time, victim,
+  suspect, vehicle, witnesses, officer, evidence) drawn from large entity pools.
+- Each case emits **4 internally-consistent documents** — two witness statements, an
+  incident report, an interview transcript — so `case_id` genuinely groups a case's
+  documents (the law-enforcement scenario from the brief).
+- **Formats:** `.txt`, `.pdf`, `.json`, `.eml` (the required three + email evidence).
+- **Metadata** (`doc_type`, `case_id`, `date`) is controlled by the generator and
+  encoded in the filename convention
+  `"<doc_type>__<case_id>__<YYYY-MM-DD>__<NNN-role>.<ext>"`; `.json`/`.eml` also embed
+  it inline (JSON fields / email headers) so the loader can recover it either way.
+
+### Ground truth (`ground_truth.json`)
+One `(query, expected_source_file, filters)` entry per case. Each case carries a
+**unique signature** placed in exactly one document — a distinctive vehicle (witness
+statement), a unique evidence item (report), or a named person (transcript) — so each
+query has an unambiguous answer. Filters rotate across **semantic / doc_type / case_id
+/ date-range** to exercise the metadata-filtering paths in evaluation.

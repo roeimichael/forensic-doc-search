@@ -187,12 +187,13 @@ Each task: **components**, **acceptance criteria** (how we know it's done), and 
 
 ## 4. Sample Dataset  *(building it is part of the assignment)*
 
-**T0.1 — Dataset generation** *(prerequisite for everything — do early)*
-- **DECIDED: synthetic generator, real-text-seeded** (Option A with a twist). Rationale below.
-- Generator produces 50–200 forensic-styled short docs across the brief's doc_types (`witness_statement`, `report`, `transcript`), in all three formats (`.txt`/`.pdf`/`.json`), with **controlled** metadata (`doc_type`, `case_id`, `date`) and **known ground-truth** for the eval.
-- Content is **seeded from small real public text snippets** (e.g. a slice of [harvard-lil/cold-cases](https://huggingface.co/datasets/harvard-lil/cold-cases), Wikipedia paragraphs, or ICTY transcript excerpts) so docs read realistically rather than toy-like — but we own the metadata and the (query → expected_doc) mapping.
-- **Why not pure public corpus (Option B):** public legal sets are single-doc-type court *decisions*, huge (millions), and lack the `doc_type`+`case_id`+`date` forensic metadata that's ~20% of the grade. The brief's Option B itself says *"Adapt the metadata schema to fit"* → the graded metadata gets synthesized either way. Public route adds download/licensing/trimming friction without saving the graded work. (Web survey of candidate corpora done — see §8.6.)
-- Acceptance: generation script committed to the repo; output spans `.txt`/`.pdf`/`.json`; covers `witness_statement`/`report`/`transcript`; emits a ground-truth file usable by T4 eval; deterministic (seeded) for reproducibility.
+**T0.1 — Dataset generation** *(prerequisite for everything — DONE)*
+- **IMPLEMENTED: scenario-driven synthetic generator** (`src/ragforce/dataset/generator.py`). Models distinct **case scenarios** (not loose snippets) so the corpus is diverse and `case_id` is meaningful.
+- `ceil(n/4)` cases, each with structured facts drawn from large entity pools (names, streets, vehicles, evidence, crime types). Each case emits **4 internally-consistent docs** (2 witness statements, 1 report, 1 transcript) → `case_id` groups a real case's documents.
+- **Formats: `.txt`/`.pdf`/`.json`/`.eml`** — the required three **plus email evidence** (on-theme for digital forensics; header-derived metadata). Metadata (`doc_type`/`case_id`/`date`) is controlled, encoded in the filename, and embedded inline for json/eml.
+- **Ground truth:** one `(query, expected_source_file, filters)` per case; each case has a **unique signature** (distinctive vehicle → witness stmt, unique evidence → report, named person → transcript) so every query is unambiguous. Filters rotate across **semantic / doc_type / case_id / date-range**.
+- **Why scenario-driven, not snippet-seeded:** a first snippet-stitched version measured 92% sentence duplication, 14/120 findable docs, and meaningless `case_id`. Scenario-driven fixed all three (52% dup — mostly structural boilerplate; 30/30 ground-truth signatures unambiguous; 4 docs/case).
+- **Status:** done + validated (n=120 → 30 cases, even format split, 30 sound GT pairs, some multi-chunk reports). Deterministic, clean-slate, 5 unit tests. Generated corpus is gitignored (reproducible).
 
 ---
 
