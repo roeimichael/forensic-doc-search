@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Primary configuration (the readable source of truth).
+# Every field can be overridden at runtime via environment variables / .env using
+# the prefix RAG__ and "__" as the nested delimiter, e.g.:
+#     RAG__EMBEDDING__MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+# Env vars win over this file. See .env.example.
+# ─────────────────────────────────────────────────────────────────────────────
+
+embedding:
+  model_name: "BAAI/bge-small-en-v1.5"   # fallback: sentence-transformers/all-MiniLM-L6-v2
+  dim: 384                               # asserted against the model's reported dim at startup
+  device: "cpu"                          # "cuda" if a GPU is available
+  normalize: true                        # L2-normalize -> cosine == dot product
+  max_seq_length: 512                    # bge-small: 512  | MiniLM: 256
+  # bge wants a query-side instruction; passages need none. (MiniLM: leave both "".
+  # e5: query_prefix "query: ", passage_prefix "passage: ".)
+  query_prefix: "Represent this sentence for searching relevant passages: "
+  passage_prefix: ""
+  batch_size: 64
+
+chunking:
+  chunk_size: 400        # tokens (counted with the embedding model's tokenizer). MiniLM: ~200
+  chunk_overlap: 50      # tokens (~12.5%). MiniLM: ~20
+  min_chunk_size: 32     # drop fragments smaller than this (tokens)
+
+qdrant:
+  host: "localhost"
+  port: 6333
+  collection: "forensic_docs"
+  dense_vector_name: "dense"
+  sparse_vector_name: "sparse"
+  upsert_batch_size: 128
+  recreate_on_ingest: false   # true wipes + rebuilds the collection on ingest
+
+hybrid:
+  enabled: true
+  sparse_model: "Qdrant/bm25"   # fastembed sparse encoder
+  fusion: "rrf"                 # server-side Reciprocal Rank Fusion via Qdrant Query API
+  top_k: 5
+
+paths:
+  source_dir: "data/generated"
+  seed_file: "data/seeds/seed_snippets.jsonl"
+  ground_truth: "data/generated/ground_truth.json"
+
+dataset:
+  num_docs: 120                 # 50–200
+  seed: 42                      # deterministic generation
+  doc_types: ["witness_statement", "report", "transcript"]
+  formats: ["txt", "pdf", "json"]
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  default_top_k: 5
+
+logging:
+  level: "INFO"
+  config_file: "config/logging.yaml"

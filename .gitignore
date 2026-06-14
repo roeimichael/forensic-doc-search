@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Env / secrets (config-driven; never commit real secrets)
+.env
+
+# Self-hosted Qdrant persistent volume
+qdrant_storage/
+
+# Generated dataset — reproducible via `rag generate`, so not committed
+data/generated/
+
+# Local model / HF caches
+.cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
