@@ -34,6 +34,11 @@ class Reranker:
         )
         self._top_n = top_n
 
+    @property
+    def top_n(self) -> int:
+        """How many first-stage candidates to fetch + rescore."""
+        return self._top_n
+
     def rerank(self, query: str, hits: list["SearchHit"], *, top_k: int | None = None) -> list["SearchHit"]:
         """Return ``hits`` reordered by cross-encoder relevance (score := rerank score).
 

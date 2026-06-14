@@ -31,6 +31,11 @@ def get_sparse(request: Request) -> Any | None:
     return request.app.state.sparse
 
 
+def get_reranker(request: Request) -> Any | None:
+    """The cross-encoder reranker singleton (``None`` if rerank is disabled)."""
+    return request.app.state.reranker
+
+
 def get_store(request: Request) -> "VectorStore":
     """The VectorStore singleton."""
     return request.app.state.store

@@ -14,7 +14,7 @@ from fastapi import FastAPI
 
 from ragforce.api.routes import router
 from ragforce.config import load_settings
-from ragforce.embedding import build_embedder
+from ragforce.embedding import build_embedder, build_reranker
 from ragforce.logging_setup import configure_logging, get_logger
 from ragforce.store import VectorStore
 
@@ -27,6 +27,9 @@ async def lifespan(app: FastAPI):
     settings = load_settings()
     log.info("loading embedder %s ...", settings.embedding.model_name)
     dense, sparse = build_embedder(settings)
+    reranker = build_reranker(settings)
+    if reranker is not None:
+        log.info("loaded reranker %s", settings.rerank.model_name)
     store = VectorStore(
         host=settings.qdrant.host,
         port=settings.qdrant.port,
@@ -38,8 +41,12 @@ async def lifespan(app: FastAPI):
     app.state.settings = settings
     app.state.dense = dense
     app.state.sparse = sparse
+    app.state.reranker = reranker
     app.state.store = store
-    log.info("API ready (collection=%s, hybrid=%s)", settings.qdrant.collection, sparse is not None)
+    log.info(
+        "API ready (collection=%s, hybrid=%s, rerank=%s)",
+        settings.qdrant.collection, sparse is not None, reranker is not None,
+    )
     yield
 
 

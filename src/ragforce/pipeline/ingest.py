@@ -31,6 +31,7 @@ class IngestStats:
     chunks: int = 0
     skipped_files: int = 0
     upserted: int = 0
+    failed: int = 0
 
 
 def run_ingest(
@@ -58,35 +59,53 @@ def run_ingest(
         collection=settings.qdrant.collection,
         dense_vector_name=settings.qdrant.dense_vector_name,
         sparse_vector_name=settings.qdrant.sparse_vector_name,
+        timeout=settings.qdrant.timeout,
+        hnsw_m=settings.qdrant.hnsw_m,
+        hnsw_ef_construct=settings.qdrant.hnsw_ef_construct,
+        hnsw_ef_search=settings.qdrant.hnsw_ef_search,
+        quantization=settings.qdrant.quantization,
+        prefetch_multiplier=settings.hybrid.prefetch_multiplier,
+        prefetch_min=settings.hybrid.prefetch_min,
     )
-    store.ensure_collection(dim=dense.dim, recreate=recreate or settings.qdrant.recreate_on_ingest)
+    did_recreate = recreate or settings.qdrant.recreate_on_ingest
+    store.ensure_collection(dim=dense.dim, recreate=did_recreate)
 
     stats = IngestStats()
     chunks = []
+    source_files: list[str] = []
     for doc in load_directory(source):
         stats.documents += 1
+        source_files.append(doc.source_file)
         chunks.extend(chunker.chunk(doc))
     stats.chunks = len(chunks)
     _log.info("loaded %d documents -> %d chunks", stats.documents, stats.chunks)
 
+    # Idempotency sweep: drop any existing points for these source files first, so a
+    # document that now yields FEWER chunks doesn't leave stale orphans behind.
+    # (A full recreate already wiped everything, so the sweep is only needed otherwise.)
+    if not did_recreate:
+        store.delete_by_sources(sorted(set(source_files)))
+
     embed_bs = settings.embedding.batch_size
     upsert_bs = settings.qdrant.upsert_batch_size
-    buffer: list = []
     for i in range(0, len(chunks), embed_bs):
         batch = chunks[i : i + embed_bs]
-        texts = [c.text for c in batch]
-        dense_vecs = dense.embed_passages(texts, batch_size=embed_bs)
-        sparse_vecs = (
-            sparse.embed_passages(texts, batch_size=embed_bs) if sparse else [None] * len(batch)
-        )
-        buffer.extend(to_point(c, dv, sv) for c, dv, sv in zip(batch, dense_vecs, sparse_vecs))
-        while len(buffer) >= upsert_bs:
-            store.upsert(buffer[:upsert_bs])
-            stats.upserted += upsert_bs
-            buffer = buffer[upsert_bs:]
-    if buffer:
-        store.upsert(buffer)
-        stats.upserted += len(buffer)
+        try:
+            texts = [c.text for c in batch]
+            dense_vecs = dense.embed_passages(texts, batch_size=embed_bs)
+            sparse_vecs = (
+                sparse.embed_passages(texts, batch_size=embed_bs) if sparse else [None] * len(batch)
+            )
+            points = [to_point(c, dv, sv) for c, dv, sv in zip(batch, dense_vecs, sparse_vecs)]
+            for j in range(0, len(points), upsert_bs):
+                store.upsert(points[j : j + upsert_bs])
+            stats.upserted += len(points)  # credited only after a successful upsert
+        except Exception as e:  # noqa: BLE001 — one bad batch shouldn't abort the whole ingest
+            stats.failed += len(batch)
+            _log.error("embed/upsert failed for chunks %d..%d: %s", i, i + len(batch), e)
 
-    _log.info("ingest complete: %d chunks upserted into '%s'", stats.upserted, settings.qdrant.collection)
+    msg = "ingest complete: %d chunks upserted into '%s'"
+    if stats.failed:
+        msg += f" ({stats.failed} chunks FAILED — re-run to retry)"
+    _log.info(msg, stats.upserted, settings.qdrant.collection)
     return stats
