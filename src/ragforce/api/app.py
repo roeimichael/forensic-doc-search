@@ -8,17 +8,52 @@ routes. The Makefile/uvicorn target is ``ragforce.api.app:app`` — the module-l
 
 from __future__ import annotations
 
-from typing import Any
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
+from ragforce.api.routes import router
+from ragforce.config import load_settings
+from ragforce.embedding import build_embedder
+from ragforce.logging_setup import configure_logging, get_logger
+from ragforce.store import VectorStore
 
 
-def create_app() -> Any:
-    """Build and return the FastAPI app (with lifespan-loaded singletons + routes).
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load Settings + embedder + store ONCE at startup (never per request)."""
+    configure_logging()
+    log = get_logger("api")
+    settings = load_settings()
+    log.info("loading embedder %s ...", settings.embedding.model_name)
+    dense, sparse = build_embedder(settings)
+    store = VectorStore(
+        host=settings.qdrant.host,
+        port=settings.qdrant.port,
+        collection=settings.qdrant.collection,
+        dense_vector_name=settings.qdrant.dense_vector_name,
+        sparse_vector_name=settings.qdrant.sparse_vector_name,
+    )
+    app.state.settings = settings
+    app.state.dense = dense
+    app.state.sparse = sparse
+    app.state.store = store
+    log.info("API ready (collection=%s, hybrid=%s)", settings.qdrant.collection, sparse is not None)
+    yield
 
-    TODO(T3): construct FastAPI(); attach lifespan that builds Settings/embedder/
-    store; ``app.include_router(routes.router)``; return app.
-    """
-    raise NotImplementedError("create_app — implemented in a later step (T3)")
+
+def create_app() -> FastAPI:
+    """Build the FastAPI app with the search routes and the startup lifespan."""
+    app = FastAPI(
+        title="Forensic RAG Search API",
+        description="On-prem semantic + metadata + hybrid search over forensic documents.",
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+    app.include_router(router)
+    return app
 
 
-# Enabled in the implementation step (kept out now so importing this module is safe):
-# app = create_app()
+# Uvicorn target: `uvicorn ragforce.api.app:app`. Models load in the lifespan at
+# startup, so importing this module stays cheap.
+app = create_app()

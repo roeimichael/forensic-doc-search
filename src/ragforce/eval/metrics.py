@@ -11,24 +11,21 @@ from collections.abc import Sequence
 
 
 def hit_at_k(ranked_source_files: Sequence[str], expected: str, k: int) -> bool:
-    """True if ``expected`` appears in the first ``k`` retrieved source files.
-
-    TODO(T4.2): ``return expected in ranked_source_files[:k]``.
-    """
-    raise NotImplementedError("hit_at_k — implemented in a later step (T4.2)")
+    """True if ``expected`` appears in the first ``k`` retrieved source files."""
+    return expected in ranked_source_files[:k]
 
 
 def reciprocal_rank(ranked_source_files: Sequence[str], expected: str) -> float:
-    """Reciprocal rank of the first occurrence of ``expected`` (0.0 if absent).
-
-    TODO(T4.2): find first index i where match; return 1/(i+1) or 0.0.
-    """
-    raise NotImplementedError("reciprocal_rank — implemented in a later step (T4.2)")
+    """Reciprocal rank of the first occurrence of ``expected`` (0.0 if absent)."""
+    for i, sf in enumerate(ranked_source_files):
+        if sf == expected:
+            return 1.0 / (i + 1)
+    return 0.0
 
 
 def mrr(per_query_ranks: Sequence[Sequence[str]], expected: Sequence[str]) -> float:
-    """Mean Reciprocal Rank across queries.
+    """Mean Reciprocal Rank across queries."""
+    if not expected:
+        return 0.0
+    return sum(reciprocal_rank(r, e) for r, e in zip(per_query_ranks, expected)) / len(expected)
 
-    TODO(T4.2): mean of ``reciprocal_rank`` over all (ranked, expected) pairs.
-    """
-    raise NotImplementedError("mrr — implemented in a later step (T4.2)")

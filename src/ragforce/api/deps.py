@@ -8,22 +8,29 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from fastapi import Request
+
 if TYPE_CHECKING:
     from ragforce.config import Settings
-    from ragforce.embedding import DenseEmbedder, SparseEmbedder
+    from ragforce.embedding import DenseEmbedder
     from ragforce.store import VectorStore
 
 
-def get_settings() -> "Settings":
-    """Provide the loaded Settings. TODO(T3): return app.state.settings."""
-    raise NotImplementedError("get_settings — implemented in a later step (T3)")
+def get_settings(request: Request) -> "Settings":
+    """The loaded Settings (built once in the app lifespan)."""
+    return request.app.state.settings
 
 
-def get_embedder() -> "tuple[DenseEmbedder, SparseEmbedder | None]":
-    """Provide the (dense, sparse?) embedders. TODO(T3): return app.state.embedder."""
-    raise NotImplementedError("get_embedder — implemented in a later step (T3)")
+def get_dense(request: Request) -> "DenseEmbedder":
+    """The dense embedder singleton."""
+    return request.app.state.dense
 
 
-def get_store() -> "VectorStore":
-    """Provide the VectorStore. TODO(T3): return app.state.store."""
-    raise NotImplementedError("get_store — implemented in a later step (T3)")
+def get_sparse(request: Request) -> Any | None:
+    """The sparse embedder singleton (``None`` if hybrid is disabled)."""
+    return request.app.state.sparse
+
+
+def get_store(request: Request) -> "VectorStore":
+    """The VectorStore singleton."""
+    return request.app.state.store

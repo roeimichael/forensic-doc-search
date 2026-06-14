@@ -61,8 +61,18 @@ def eval(
     ),
 ) -> None:
     """Evaluate retrieval quality (Hit@1, Hit@5, MRR) and write the report."""
-    # TODO(T4.x): ragforce.eval.evaluate.run(settings, ground_truth)
-    raise NotImplementedError("evaluation is implemented in a later step (T4.x)")
+    from ragforce.config import load_settings
+    from ragforce.eval import run
+    from ragforce.logging_setup import configure_logging
+
+    configure_logging()
+    m = run(load_settings(), ground_truth_path=ground_truth)
+    d, h = m["dense"], m["hybrid"]
+    typer.echo(f"DENSE   Hit@1={d['hit@1']:.2f}  Hit@5={d['hit@5']:.2f}  MRR={d['mrr']:.3f}")
+    typer.echo(f"HYBRID  Hit@1={h['hit@1']:.2f}  Hit@5={h['hit@5']:.2f}  MRR={h['mrr']:.3f}")
+    if m["filtered_accuracy"] is not None:
+        typer.echo(f"Filtered accuracy: {m['filtered_accuracy']:.0%} ({m['filtered_total']} queries)")
+    typer.echo("Report -> docs/03_eval_results.md")
 
 
 @app.command()

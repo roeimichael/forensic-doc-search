@@ -12,13 +12,32 @@ from __future__ import annotations
 
 from typing import Any
 
+from qdrant_client import models
 
-def build_filter(filters: dict[str, Any]) -> Any | None:
+
+def build_filter(filters: dict[str, Any] | None) -> models.Filter | None:
     """Build a ``qdrant_client.models.Filter`` from the request ``filters`` dict.
 
-    Returns ``None`` for an empty dict (unfiltered search).
+    Supported value shapes (combined with AND / ``must``):
+        * scalar           → exact match  ``{"doc_type": "report"}``
+        * list             → match-any    ``{"case_id": ["2024-1", "2024-2"]}``
+        * ``date`` scalar  → that single day        ``{"date": "2024-01-15"}``
+        * ``date`` mapping → inclusive range  ``{"date": {"gte": ..., "lte": ...}}``
 
-    TODO(T3.2): for each key, emit FieldCondition(MatchValue) for scalars; for a
-    ``date`` mapping with gte/lte, emit a DatetimeRange condition; combine via must=[...].
+    Returns ``None`` for an empty/None dict (unfiltered search).
     """
-    raise NotImplementedError("build_filter — implemented in a later step (T3.2)")
+    if not filters:
+        return None
+    must: list[models.FieldCondition] = []
+    for key, value in filters.items():
+        if key == "date":
+            if isinstance(value, dict):
+                rng = models.DatetimeRange(gte=value.get("gte"), lte=value.get("lte"))
+            else:
+                rng = models.DatetimeRange(gte=value, lte=value)  # exact day
+            must.append(models.FieldCondition(key="date", range=rng))
+        elif isinstance(value, (list, tuple, set)):
+            must.append(models.FieldCondition(key=key, match=models.MatchAny(any=list(value))))
+        else:
+            must.append(models.FieldCondition(key=key, match=models.MatchValue(value=value)))
+    return models.Filter(must=must) if must else None
