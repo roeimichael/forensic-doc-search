@@ -23,8 +23,6 @@ STORE = "#ffedd5"    # orange — storage
 STORE_E = "#ea580c"
 SERVE = "#dcfce7"    # green  — online serving
 SERVE_E = "#16a34a"
-CONFIG = "#f3e8ff"   # purple — cross-cutting config
-CONFIG_E = "#9333ea"
 INK = "#1f2937"
 
 
@@ -107,7 +105,7 @@ def main() -> Path:
     # ── serving ──────────────────────────────────────────────────────────────
     ax.text(3.2, 31, "SERVING  (online)", ha="left", va="center",
             fontsize=9, fontweight="bold", color=SERVE_E)
-    box(ax, 30, 13, 40, 16, "FastAPI  +  cross-encoder reranker",
+    box(ax, 30, 11.5, 40, 17.5, "FastAPI  +  cross-encoder reranker",
         "POST /search · semantic\nPOST /search/filtered · metadata + date range\n"
         "POST /search/hybrid · dense + BM25 (RRF)\nrerank top-N (bge-reranker) · GET /health",
         SERVE, SERVE_E)
@@ -121,9 +119,9 @@ def main() -> Path:
             style="italic", color=STORE_E)
 
     # clients: UI + Eval
-    box(ax, 4, 13, 20, 16, "Streamlit UI",
+    box(ax, 4, 11.5, 20, 17.5, "Streamlit UI",
         "query box\n+ filters\n+ mode select", SERVE, SERVE_E)
-    box(ax, 76, 13, 20, 16, "Evaluation",
+    box(ax, 76, 11.5, 20, 17.5, "Evaluation",
         "Hit@1 / Hit@5 / MRR\nsemantic vs hybrid\n-> 03_eval_results.md", SERVE, SERVE_E)
 
     arrow(ax, (30, 21), (24, 21), color=INK)   # api -> ui (response)
@@ -133,13 +131,6 @@ def main() -> Path:
     arrow(ax, (70, 21), (76, 21), color=INK)   # api -> eval
     ax.text(73, 23, "HTTP", ha="center", va="center", fontsize=7.5,
             style="italic", color="#6b7280")
-
-    # ── config (cross-cutting) ───────────────────────────────────────────────
-    box(ax, 4, 56, 20, 8.5, "config.yaml + .env",
-        "model · chunk · qdrant · paths", CONFIG, CONFIG_E)
-    # one dashed feed up into ingestion, one down toward storage/serving
-    arrow(ax, (14, 64.5), (10, 67), color=CONFIG_E, style="-|>", rad=0.0, lw=1.2)
-    arrow(ax, (25, 60), (30, 47), color=CONFIG_E, style="-|>", rad=-0.15, lw=1.2)
 
     fig.savefig(OUT, dpi=150, bbox_inches="tight", pad_inches=0.35, facecolor="white")
     plt.close(fig)
