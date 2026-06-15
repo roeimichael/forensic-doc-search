@@ -1,5 +1,4 @@
 -r requirements.txt
 
-pytest==8.2.2
-ruff==0.5.0
-black==24.4.2
+pytest==9.1.0
+ruff==0.15.17    # lint + format (replaces black)

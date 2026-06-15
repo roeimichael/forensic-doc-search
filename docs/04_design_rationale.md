@@ -365,14 +365,18 @@ confirms it: BM25 alone is the strongest single retriever on this corpus (Hit@5 
 can't just add them. **RRF** sidesteps this by fusing **ranks**, not scores:
 
 ```
-RRF(d) = Σ_retriever  1 / (k + rank_retriever(d))     # k ≈ 60
+RRF(d) = Σ_retriever  1 / (k + rank_retriever(d))
 ```
 
 Each retriever contributes `1/(k+rank)` for a document; a doc ranked #1 by either retriever gets a
 big contribution, and being found by *both* stacks them. No score calibration, no tuning beyond
 `k`. Qdrant runs this **server-side** via its Query API: two `Prefetch` branches (dense + sparse,
 each fetching `max(top_k·multiplier, min)` candidates) feed a `FusionQuery(RRF)`. The same
-metadata filter is applied to **both** branches.
+metadata filter is applied to **both** branches. _Honest detail:_ `FusionQuery` exposes no `k`, so
+we don't set one — Qdrant uses its built-in rank constant (a small default — `2` in the
+qdrant-client reference implementation), **not** the `k = 60` from the Cormack et al. paper. The
+absolute fused scores therefore differ from the paper's, but the rank-agreement behaviour is the
+same, and the measured eval numbers reflect whatever constant Qdrant actually applies.
 
 **Alternative.** Weighted score fusion (`α·dense + (1−α)·bm25` after normalization) — works but
 needs per-corpus tuning of `α` and a normalization scheme; RRF is parameter-light and robust,

@@ -115,10 +115,14 @@ if search_clicked and query.strip():
                 h[1].text(md.get("source_file", "?"))
                 # metadata tags — a labelled row so it's clear what each field is
                 t = st.columns(4)
-                t[0].caption("Doc type");  t[0].text(md.get("doc_type", "?"))
-                t[1].caption("Date");      t[1].text(md.get("date", "?"))
-                t[2].caption("Case ID");   t[2].text(md.get("case_id", "?"))
-                t[3].caption("Relevance"); t[3].text(f"{r['score']:.3f}")
+                for col, label, value in (
+                    (t[0], "Doc type", md.get("doc_type", "?")),
+                    (t[1], "Date", md.get("date", "?")),
+                    (t[2], "Case ID", md.get("case_id", "?")),
+                    (t[3], "Relevance", f"{r['score']:.3f}"),
+                ):
+                    col.caption(label)
+                    col.text(value)
                 # body — plain text (no markdown rendering) so corpus content can't inject markup
                 st.caption("Matched text")
                 st.text(r["text"])

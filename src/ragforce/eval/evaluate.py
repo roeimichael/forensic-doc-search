@@ -172,8 +172,6 @@ def run(settings: "Settings", ground_truth_path: str | None = None) -> dict[str,
         "hybrid_recovered": len(recovered),
         "best_retriever": best,
         **summaries,  # top-level per-retriever summaries (dense, bm25, hybrid, ...)
-        # back-compat aliases
-        "filtered_accuracy": (filt_recall / filt_total) if filt_total else None,
     }
 
     _write_report(settings, metrics, recovered, per_category)

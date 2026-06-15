@@ -1,4 +1,4 @@
-"""HTTP routes (hook point — stubs this step).
+"""HTTP routes for the search API: semantic, metadata-filtered, hybrid, and health.
 
 Endpoints (assignment Part 3 + bonus hybrid):
     POST /search           — semantic (T3.1)

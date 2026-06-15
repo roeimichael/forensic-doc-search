@@ -300,19 +300,25 @@ Dense cosine scores live in ~0–1; BM25 scores are unbounded and on a totally d
   `α` per corpus and pick a normalization.
 - **Reciprocal Rank Fusion (RRF)** — fuse **ranks**, not scores:
   ```
-  RRF(d) = Σ_retriever  1 / (k + rank_retriever(d))      (k ≈ 60)
+  RRF(d) = Σ_retriever  1 / (k + rank_retriever(d))
   ```
-  No normalization, no tuning beyond `k`. Robust. This is our default (and Qdrant runs it
-  server-side).
+  No normalization, no tuning beyond `k`. Robust, and what we use — Qdrant runs RRF
+  server-side from our two prefetch branches (`FusionQuery(RRF)`). **Honest detail to
+  know:** Qdrant's `FusionQuery` exposes no `k`, so we don't set one — it uses Qdrant's
+  built-in rank constant (a small default; **2** in the client's reference implementation),
+  *not* the `k = 60` from the original paper. The worked example below uses `k = 60` only
+  because that's the canonical textbook value — it illustrates the formula, not the exact
+  constant our system runs.
 
-### Worked RRF example (k=60)
+### Worked RRF example (illustrative, k=60)
 Dense ranks: A(1), B(2), C(3). BM25 ranks: C(1), A(2), B(4).
 - RRF(A) = 1/61 + 1/62 = **0.0325**  ← high in *both* → wins
 - RRF(C) = 1/63 + 1/61 = 0.0323
 - RRF(B) = 1/62 + 1/64 = 0.0318
 
 A document ranked well by **both** retrievers floats to the top, even if it was #1 by neither.
-That's the whole point: agreement across independent signals wins.
+That's the whole point: agreement across independent signals wins. (With Qdrant's `k = 2`
+the absolute numbers differ, but the ordering logic — agreement wins — is identical.)
 
 ### Say this
 > *"Dense and BM25 scores aren't comparable, so I fuse **ranks** with RRF — sum of 1/(k+rank)
@@ -451,12 +457,43 @@ edited file that now yields *fewer* chunks doesn't leave stale leftovers.
   Qdrant shards/segments; the embedder is the throughput bottleneck at ingest (batch + GPU).
 - **"Why no LLM/generation?"** → It was optional; I focused on retrieval quality (the graded core).
   Adding Ollama to generate grounded answers over the retrieved chunks is the next step.
-- **"What would you do with more time?"** → Bigger embedder + quantization, a held-out multi-seed
-  eval with relational/temporal query categories, and the local-LLM answer layer.
+- **"What would you do with more time?"** → A held-out multi-seed eval (tighter CIs) and
+  **fine-tuning the reranker** on in-domain pairs — my A/B sweep (§14) showed a *bigger*
+  first-stage embedder does **not** help here, so the reranker is where capacity pays off —
+  plus the local-LLM answer layer.
 
 ---
 
-## 14. One-line glossary
+## 14. Final status — what shipped, and what the experiments proved
+
+The project is **complete and verified against the requirements** (all functional + non-functional
+parts, plus both bonuses — hybrid search and the UI). The forensic-critical property holds: the
+system **only ever returns verbatim retrieved text and never generates or paraphrases** — there is
+no LLM in the serving path, so there is **no hallucination surface**. Chunk text is the exact
+`document[start:end]` slice (verified across all 150 chunks), reranking changes a hit's *score*
+only, never its text.
+
+What I can defend with data, not opinion:
+
+- **The reranker — not the embedder — is the retrieval lever.** Over 30 paraphrased queries the
+  cross-encoder lifts Hit@1 from 0.57 (hybrid) to **0.73** and gives the best MRR (**0.813**).
+- **Scaling the embedder up does not help here.** An A/B sweep (§ this file references
+  [`06_model_sweep.md`](06_model_sweep.md)) showed `bge-base` (768-d, ~4× the parameters) ties
+  `bge-small` on the shipped pipeline; the small model is the right default.
+- **Chunking has no upside on this corpus** because 90/120 documents are a single chunk — measured,
+  not assumed. It matters at scale / on long documents.
+- **The confidence floor is calibrated.** The reranker score is a usable confidence: a precise
+  query (`man wearing a beanie`) scores ~0.95, a vague one (`man with a hat`) ~0.2 on the same
+  documents; the API/UI `min_score` floor cleanly separates them.
+
+If asked *"is it finished and correct?"*: yes — 40 tests pass (incl. a live-Qdrant idempotency
+suite), the eval is reproducible (`rag eval` regenerates the exact numbers in `03_eval_results.md`),
+and every documented metric back-derives to a real integer hit count. The honest limitations are the
+small eval set (n=30, wide CIs) and the templated synthetic corpus — both disclosed in the docs.
+
+---
+
+## 15. One-line glossary
 
 - **Embedding** — text → vector where distance ≈ meaning similarity.
 - **Bi-encoder** — encodes query & passage separately (fast, precomputable, less accurate).

@@ -21,7 +21,7 @@ _Dense-only MRR isolates the embedder; the right three columns are the shipped H
 3. **The brief's model (`all-MiniLM-L6-v2`) is competitive.** It is the *smallest* model here yet marginally best dense-only (0.591) and on Hit@5 (0.93). Defaulting to `bge-small` was a safe call (512-token context vs MiniLM's 256), not a necessary one — both are fine and the swap is one config line.
 4. **Chunking has no upside on this corpus.** Smaller (256-token) chunks lifted dense-only MRR (0.671 — tighter semantic units) but the shipped pipeline went slightly *down* (0.785 vs 0.814). With 90/120 docs already a single chunk there is little to tune; chunking matters at scale / on long documents, which this corpus does not exercise.
 
-**Caveat (n=30).** The 95% CIs are wide; sub-0.02 MRR and single-query Hit@1 gaps are within noise. The robust, repeatable conclusions are (1) a bigger embedder is not better here and (2) the reranker dominates — not the fine ordering of near-tied rows.
+**Caveat (n=30).** The 95% CIs are wide; sub-0.02 MRR and single-query Hit@1 gaps are within noise. The robust, repeatable conclusions are (1) a bigger embedder is not better here and (2) the reranker dominates — not the fine ordering of near-tied rows. (Absolute figures come from this sweep's own re-ingest runs and can differ by ~0.001 from the canonical `docs/03` numbers due to RRF/rerank tie-ordering across runs.)
 
 **Decision.** Keep `bge-small` as the default (good quality, 512-token headroom, MIT) and spend retrieval budget on the **reranker**, not a larger embedder — which is what the system already does. If latency / footprint mattered, `all-MiniLM-L6-v2` is a drop-in lighter alternative with no measured quality loss.
 

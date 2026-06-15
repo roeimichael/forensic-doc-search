@@ -1,14 +1,15 @@
 """``rag`` command-line entrypoint (Typer).
 
-Commands (all are scaffold stubs this step — bodies raise NotImplementedError):
-    rag generate   — build the synthetic, real-text-seeded corpus + ground_truth.json
-    rag ingest     — load → chunk → embed → upsert into Qdrant (idempotent)
-    rag eval       — run the retrieval evaluation (Hit@K, MRR) → docs/03_eval_results.md
-    rag health     — print store stats (point count, collection, embedding model)
+Commands:
+    rag generate     — build the synthetic, real-text-seeded corpus + ground_truth.json
+    rag ingest       — load → chunk → embed → upsert into Qdrant (idempotent)
+    rag eval         — run the retrieval evaluation (Hit@K, MRR) → docs/03_eval_results.md
+    rag fetch-models — pre-download all local models into the HF cache (run once, online)
+    rag health       — print store stats (point count, collection, embedding model)
 
 Only ``typer`` is imported at module load so ``rag --help`` works before the heavy
-deps (torch, qdrant-client) are exercised. Pipeline imports happen inside command
-bodies in the implementation step.
+deps (torch, qdrant-client) are exercised. Pipeline imports happen inside each command
+body to keep ``rag --help`` fast.
 """
 
 from __future__ import annotations

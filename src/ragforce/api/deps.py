@@ -1,4 +1,4 @@
-"""FastAPI dependency providers (hook point — stubs this step).
+"""FastAPI dependency providers.
 
 These hand the singletons built in the app lifespan to the routes, so handlers
 never construct a model or client per request.

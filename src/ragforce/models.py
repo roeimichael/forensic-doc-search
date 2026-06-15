@@ -9,8 +9,7 @@ These three frozen dataclasses are the *only* vocabulary the pipeline speaks:
 Design choice: ``Chunk.chunk_id`` IS the Qdrant point id (a single identifier
 everywhere), so there is never a second hash to reconcile between layers.
 
-These are real (not stubs): they are cheap, dependency-free, and every later
-module imports them.
+They are deliberately cheap and dependency-free — every later module imports them.
 """
 
 from __future__ import annotations

@@ -60,15 +60,16 @@ uvicorn ragforce.api.app:app --host 0.0.0.0 --port 8000
 
 | Method | Endpoint | Body | Purpose |
 |--------|----------|------|---------|
-| POST | `/search` | `{query, top_k=5}` | Semantic search |
-| POST | `/search/filtered` | `{query, filters, top_k=5}` | Semantic + metadata filter |
-| POST | `/search/hybrid` | `{query, filters, top_k=5}` | Dense + BM25 (RRF) |
+| POST | `/search` | `{query, top_k=5, min_score?}` | Semantic search |
+| POST | `/search/filtered` | `{query, filters, top_k=5, min_score?}` | Semantic + metadata filter |
+| POST | `/search/hybrid` | `{query, filters, top_k=5, min_score?}` | Dense + BM25 (RRF) |
 | GET | `/health` | — | Store stats (chunk_count, collection, model) |
 
 Response: `{"results": [{"chunk_id", "score", "text", "metadata"}]}`. Inputs are
-validated (`top_k` 1–100, non-empty query); filters are allow-listed to indexed
-fields; a store outage returns **503**, an invalid filter **422**, and `/health`
-never throws. Every mode reranks its top candidates with the cross-encoder.
+validated (`top_k` 1–100, non-empty query, optional `min_score` 0–1); filters are
+allow-listed to indexed fields; a store outage returns **503**, an invalid filter **422**,
+and `/health` never throws. Every mode reranks its top candidates with the cross-encoder,
+and the optional `min_score` floor drops any hit below that reranker confidence.
 
 ## Search UI _(bonus)_
 
@@ -95,14 +96,14 @@ string matching):
 |-----------|------:|:--------------:|----:|
 | Dense (semantic) | 0.47 | 0.60 (0.42–0.75) | 0.527 |
 | BM25 (sparse) | 0.70 | 0.93 (0.79–0.98) | 0.783 |
-| Hybrid (RRF) | 0.53 | 0.90 (0.74–0.97) | 0.696 |
-| **Hybrid + reranker** | **0.73** | 0.90 (0.74–0.97) | **0.814** |
+| Hybrid (RRF) | 0.57 | 0.90 (0.74–0.97) | 0.711 |
+| **Hybrid + reranker** | **0.73** | 0.90 (0.74–0.97) | **0.813** |
 
 The honest story (not the tidy one): on this small model, **pure dense is weak on
 paraphrased queries** (Hit@5 0.40 on the paraphrase subset vs 1.00 on rare-token entity
 queries); **BM25 is a strong forensic baseline** (rare names/items); naive RRF fusion
 doesn't beat BM25 alone; and the **cross-encoder reranker is the real lever** for ranking
-precision (Hit@1 0.53→0.73, best MRR). Metadata filtering: **100% precision, 91% recall**
+precision (Hit@1 0.57→0.73, best MRR). Metadata filtering: **100% precision, 91% recall**
 over 22 filtered queries. Full analysis + per-category table:
 [`docs/03_eval_results.md`](docs/03_eval_results.md).
 

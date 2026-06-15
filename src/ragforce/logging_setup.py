@@ -1,8 +1,8 @@
 """Structured logging helpers used across the package.
 
 ``get_logger`` is a thin, dependency-free convenience (safe to call anywhere).
-``configure_logging`` applies the dictConfig in ``config/logging.yaml`` and is a
-stub until the implementation step.
+``configure_logging`` applies the dictConfig in ``config/logging.yaml`` (falling back
+to a sane ``basicConfig`` if the file is missing).
 """
 
 from __future__ import annotations

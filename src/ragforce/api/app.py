@@ -1,9 +1,8 @@
-"""FastAPI application factory (serving layer — hook point, stub this step).
+"""FastAPI application factory (serving layer).
 
-In the implementation step this builds the app with a lifespan that loads
-``Settings`` + the embedder + the ``VectorStore`` exactly once, then includes the
-routes. The Makefile/uvicorn target is ``ragforce.api.app:app`` — the module-level
-``app`` is created once ``create_app`` is implemented.
+``create_app`` builds the app with a lifespan that loads ``Settings`` + the embedder
++ the ``VectorStore`` exactly once and then includes the routes. The Makefile/uvicorn
+target is ``ragforce.api.app:app`` — the module-level ``app`` created at import time.
 """
 
 from __future__ import annotations
