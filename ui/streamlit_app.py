@@ -81,14 +81,25 @@ if search_clicked and query.strip():
         st.info("No matching documents.")     # the search ran fine; nothing matched
     else:
         st.success(f"{len(results)} result(s) via {_MODES[mode]}")
-        for r in results:
+        st.caption(
+            "Ranked by **relevance** (higher = better; the reranker's score). "
+            "Each result is one matched **chunk**; the tags show its source document's metadata."
+        )
+        for i, r in enumerate(results, start=1):
             md = r["metadata"]
-            # metadata as plain text (never markdown) so odd filenames can't inject markup
-            st.text(
-                f"{md.get('source_file', '?')}   ·   {md.get('doc_type', '?')}   ·   "
-                f"{md.get('date', '?')}   ·   case {md.get('case_id', '?')}   ·   score {r['score']:.3f}"
-            )
-            st.text(r["text"])                 # chunk body: plain text, no markdown rendering
-            st.divider()
+            with st.container(border=True):
+                # header: rank + filename (st.text so the '__' in filenames isn't read as markdown)
+                h = st.columns([0.6, 9.4])
+                h[0].markdown(f"**#{i}**")
+                h[1].text(md.get("source_file", "?"))
+                # metadata tags — a labelled row so it's clear what each field is
+                t = st.columns(4)
+                t[0].caption("Doc type");  t[0].text(md.get("doc_type", "?"))
+                t[1].caption("Date");      t[1].text(md.get("date", "?"))
+                t[2].caption("Case ID");   t[2].text(md.get("case_id", "?"))
+                t[3].caption("Relevance"); t[3].text(f"{r['score']:.3f}")
+                # body — plain text (no markdown rendering) so corpus content can't inject markup
+                st.caption("Matched text")
+                st.text(r["text"])
 elif search_clicked:
     st.warning("Enter a query first.")

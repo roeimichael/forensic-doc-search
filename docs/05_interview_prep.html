@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interview Prep & Methodology Study Guide</title>
+<style>
+:root { --fg:#1f2328; --muted:#656d76; --border:#d0d7de; --bg:#ffffff;
+        --code-bg:#f6f8fa; --accent:#0969da; --th-bg:#f6f8fa; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.65 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+.wrap { max-width:880px; margin:0 auto; padding:48px 24px 96px; }
+h1,h2,h3,h4 { line-height:1.25; font-weight:600; margin:1.8em 0 .6em; }
+h1 { font-size:2em; border-bottom:1px solid var(--border); padding-bottom:.3em; margin-top:0; }
+h2 { font-size:1.5em; border-bottom:1px solid var(--border); padding-bottom:.3em; }
+h3 { font-size:1.2em; } h4 { font-size:1.02em; color:var(--muted); }
+p,li { margin:.5em 0; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+code { background:var(--code-bg); padding:.15em .35em; border-radius:6px;
+       font:13.5px/1.5 SFMono-Regular,Consolas,Menlo,monospace; }
+pre { background:var(--code-bg); border:1px solid var(--border); border-radius:8px;
+      padding:14px 16px; overflow:auto; } pre code { background:none; padding:0; }
+blockquote { margin:1em 0; padding:.2em 1em; color:var(--muted);
+             border-left:4px solid var(--border); }
+table { border-collapse:collapse; width:100%; margin:1.1em 0; display:block; overflow:auto; }
+th,td { border:1px solid var(--border); padding:7px 12px; text-align:left; vertical-align:top; }
+th { background:var(--th-bg); font-weight:600; }
+tr:nth-child(even) td { background:#fbfcfd; }
+hr { border:0; border-top:1px solid var(--border); margin:2em 0; }
+.toc { background:var(--code-bg); border:1px solid var(--border); border-radius:8px;
+       padding:12px 18px; margin:0 0 32px; font-size:14.5px; }
+.toc > .toctitle { font-weight:600; color:var(--muted); text-transform:uppercase;
+                   letter-spacing:.04em; font-size:12px; }
+.toc ul { margin:.3em 0; padding-left:1.2em; } .toc li { margin:.15em 0; }
+@media print { a { color:var(--fg); } .toc { break-inside:avoid; } body { font-size:12pt; } }
+</style></head>
+<body><main class="wrap">
+<div class="toc"><div class="toctitle">Contents</div><div class="toc">
+<ul>
+<li><a href="#interview-prep-methodology-study-guide">Interview Prep &amp; Methodology Study Guide</a><ul>
+<li><a href="#0-the-90-second-project-pitch">0. The 90-second project pitch</a></li>
+<li><a href="#1-chunking-recursive-splitting-the-one-you-asked-about">1. Chunking — recursive splitting (the one you asked about)</a><ul>
+<li><a href="#what-it-is">What it is</a></li>
+<li><a href="#how-it-works-a-worked-example">How it works — a worked example</a></li>
+<li><a href="#two-refinements-we-added-high-signal">Two refinements we added (high-signal)</a></li>
+<li><a href="#why-recursive-vs-the-alternatives-the-brief-listed">Why recursive (vs the alternatives the brief listed)</a></li>
+<li><a href="#say-this-in-the-interview">Say this in the interview</a></li>
+<li><a href="#if-they-push-back">If they push back</a></li>
+</ul>
+</li>
+<li><a href="#2-embeddings-the-model">2. Embeddings &amp; the model</a><ul>
+<li><a href="#what-an-embedding-is">What an embedding is</a></li>
+<li><a href="#bi-encoder-vs-cross-encoder-know-this-cold">Bi-encoder vs cross-encoder (know this cold)</a></li>
+<li><a href="#the-model-baaibge-small-en-v15">The model — BAAI/bge-small-en-v1.5</a></li>
+<li><a href="#why-bge-small-vs-alternatives">Why bge-small (vs alternatives)</a></li>
+<li><a href="#say-this">Say this</a></li>
+<li><a href="#if-they-push-back_1">If they push back</a></li>
+</ul>
+</li>
+<li><a href="#3-cosine-similarity-the-distance-metric">3. Cosine similarity (the distance metric)</a><ul>
+<li><a href="#what-it-is_1">What it is</a></li>
+<li><a href="#say-this_1">Say this</a></li>
+</ul>
+</li>
+<li><a href="#4-vector-database-ann-hnsw">4. Vector database &amp; ANN / HNSW</a><ul>
+<li><a href="#the-problem">The problem</a></li>
+<li><a href="#hnsw-how-the-index-works-the-intuition">HNSW — how the index works (the intuition)</a></li>
+<li><a href="#why-a-database-qdrant-not-a-library-faiss">Why a database (Qdrant), not a library (FAISS)</a></li>
+<li><a href="#say-this_2">Say this</a></li>
+<li><a href="#if-they-push-back_2">If they push back</a></li>
+</ul>
+</li>
+<li><a href="#5-metadata-filtering-filterable-hnsw-the-undervalued-part">5. Metadata filtering — filterable HNSW (the "undervalued" part)</a><ul>
+<li><a href="#what-it-is_2">What it is</a></li>
+<li><a href="#the-subtlety-that-shows-depth">The subtlety that shows depth</a></li>
+<li><a href="#say-this_3">Say this</a></li>
+</ul>
+</li>
+<li><a href="#6-bm25-sparse-lexical-retrieval">6. BM25 — sparse lexical retrieval</a><ul>
+<li><a href="#what-it-is_3">What it is</a></li>
+<li><a href="#why-it-matters-here">Why it matters here</a></li>
+<li><a href="#say-this_4">Say this</a></li>
+</ul>
+</li>
+<li><a href="#7-hybrid-search-reciprocal-rank-fusion-rrf">7. Hybrid search &amp; Reciprocal Rank Fusion (RRF)</a><ul>
+<li><a href="#why-hybrid">Why hybrid</a></li>
+<li><a href="#the-problem-merging-causes">The problem merging causes</a></li>
+<li><a href="#worked-rrf-example-k60">Worked RRF example (k=60)</a></li>
+<li><a href="#say-this_5">Say this</a></li>
+</ul>
+</li>
+<li><a href="#8-cross-encoder-reranking-the-precision-stage">8. Cross-encoder reranking (the precision stage)</a><ul>
+<li><a href="#what-it-is_4">What it is</a></li>
+<li><a href="#impact-from-our-eval">Impact (from our eval)</a></li>
+<li><a href="#say-this_6">Say this</a></li>
+</ul>
+</li>
+<li><a href="#9-evaluation-hitk-mrr-confidence-intervals">9. Evaluation — Hit@K, MRR, confidence intervals</a><ul>
+<li><a href="#hitk">Hit@K</a></li>
+<li><a href="#mrr-mean-reciprocal-rank">MRR (Mean Reciprocal Rank)</a></li>
+<li><a href="#wilson-confidence-interval-the-maturity-signal">Wilson confidence interval (the maturity signal)</a></li>
+<li><a href="#say-this_7">Say this</a></li>
+</ul>
+</li>
+<li><a href="#10-eval-methodology-the-circularity-trap-your-sharpest-talking-point">10. Eval methodology — the circularity trap (your sharpest talking point)</a><ul>
+<li><a href="#the-trap">The trap</a></li>
+<li><a href="#what-we-did">What we did</a></li>
+<li><a href="#say-this_8">Say this</a></li>
+</ul>
+</li>
+<li><a href="#11-idempotency-deterministic-ids">11. Idempotency — deterministic IDs</a><ul>
+<li><a href="#what-it-is_5">What it is</a></li>
+<li><a href="#how-we-do-it">How we do it</a></li>
+<li><a href="#say-this_9">Say this</a></li>
+</ul>
+</li>
+<li><a href="#12-production-on-prem-patterns-quick-hits">12. Production &amp; on-prem patterns (quick hits)</a></li>
+<li><a href="#13-rapid-fire-likely-questions-crisp-answers">13. Rapid-fire — likely questions &amp; crisp answers</a></li>
+<li><a href="#14-one-line-glossary">14. One-line glossary</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<h1 id="interview-prep-methodology-study-guide">Interview Prep &amp; Methodology Study Guide</h1>
+<blockquote>
+<p>Goal: so you can <strong>explain every choice in this project from first principles</strong> and
+handle follow-up questions — not just recite a sentence. Each section is:
+<strong>What it is → How it works (worked example) → Why we chose it (vs alternatives) →
+Say this in the interview → If they push back.</strong></p>
+<p>Companion to <a href="04_design_rationale.md"><code>04_design_rationale.md</code></a> (decisions + sources)
+and <a href="03_eval_results.md"><code>03_eval_results.md</code></a> (numbers). This file is the <em>teaching</em> one.</p>
+</blockquote>
+<hr />
+<h2 id="0-the-90-second-project-pitch">0. The 90-second project pitch</h2>
+<p>When they say <em>"walk me through what you built"</em>:</p>
+<blockquote>
+<p>"It's an <strong>on-prem RAG retrieval system</strong> for forensic documents. The pipeline <strong>ingests</strong>
+heterogeneous files (txt/pdf/json/eml), <strong>chunks</strong> them with a token-aware recursive
+splitter, <strong>embeds</strong> each chunk locally with a <code>bge-small</code> sentence-transformer, and
+<strong>stores</strong> them in a self-hosted <strong>Qdrant</strong> vector database with rich metadata. A FastAPI
+service exposes <strong>semantic</strong>, <strong>metadata-filtered</strong>, and <strong>hybrid</strong> (dense + BM25)
+search, with a <strong>cross-encoder reranker</strong> as a precision stage. I <strong>measured</strong> it —
+Hit@K, MRR with confidence intervals, per-category — and there's a Streamlit UI. Everything
+runs locally with no cloud APIs, reproducible in three commands."</p>
+</blockquote>
+<p>That sentence touches every rubric item. Then let them pick what to drill into.</p>
+<blockquote>
+<p><strong>Note on "RAG":</strong> strictly this is the <strong>retrieval</strong> half of RAG (the R). We retrieve and
+rank passages; we don't <em>generate</em> an answer with an LLM (the brief made generation
+optional). If asked: <em>"I built the retrieval and ranking layer; bolting on a local LLM via
+Ollama to generate grounded answers over the retrieved chunks is the natural next step."</em></p>
+</blockquote>
+<hr />
+<h2 id="1-chunking-recursive-splitting-the-one-you-asked-about">1. Chunking — recursive splitting (the one you asked about)</h2>
+<h3 id="what-it-is">What it is</h3>
+<p>Embedding models can only read a limited window of text at once (here <strong>512 tokens</strong>), and a
+whole document is usually longer. <strong>Chunking</strong> is splitting a document into smaller pieces so
+each piece (a) fits the model and (b) is <em>topically coherent</em> — one chunk = roughly one idea,
+so its embedding is a clean representation. You retrieve and return <strong>chunks</strong>, not whole files.</p>
+<p><strong>Recursive chunking</strong> (a.k.a. recursive character/token splitting) is a <em>structure-aware</em>
+strategy: you give it an <strong>ordered list of separators from coarsest to finest</strong>, and it splits
+on the coarsest one that yields pieces under your size budget — recursing to finer separators
+only where a piece is still too big.</p>
+<p>Our separator ladder (<code>chunking/separators.py</code>):</p>
+<pre><code>paragraph &quot;\n\n&quot;  →  line &quot;\n&quot;  →  sentence &quot;. &quot;  →  word &quot; &quot;
+</code></pre>
+<h3 id="how-it-works-a-worked-example">How it works — a worked example</h3>
+<p>Budget = say 30 tokens. Document:</p>
+<pre><code>Witness statement.
+
+The suspect wore a navy jacket. He fled toward Oak Street and entered a waiting car.
+
+Signed: J. Smith
+</code></pre>
+<ol>
+<li><strong>Try "\n\n" (paragraphs):</strong> → <code>["Witness statement.", "The suspect ... waiting car.", "Signed: J. Smith"]</code>.</li>
+<li>Check each piece's <strong>token count</strong>:
+   - "Witness statement." → 3 tokens ✓ (under budget, keep whole)
+   - "The suspect wore ... waiting car." → 40 tokens ✗ (over budget) → <strong>recurse</strong> with the next separator.</li>
+<li><strong>Recurse on ". " (sentences)</strong> for that piece → <code>["The suspect wore a navy jacket", "He fled toward Oak Street and entered a waiting car"]</code> → each now under budget ✓.</li>
+<li>"Signed: J. Smith" → 5 tokens ✓.</li>
+<li><strong>Merge/pack</strong>: greedily combine adjacent pieces up to the budget, and <strong>carry an overlap</strong>
+   (e.g. 50 tokens) from the end of one chunk into the start of the next so context isn't cut
+   mid-thought.</li>
+</ol>
+<p>The key idea: <strong>respect the document's natural boundaries first</strong> (don't cut mid-paragraph if
+you don't have to), and only break finer when a piece is genuinely too long.</p>
+<h3 id="two-refinements-we-added-high-signal">Two refinements we added (high-signal)</h3>
+<ul>
+<li><strong>Token-aware</strong>, not character-aware: the size budget is measured with the <strong>embedding
+  model's own tokenizer</strong> (<code>tokenizer.encode</code>), because the model's limit is in <em>tokens</em>, and
+  token density varies (one "word" can be several tokens). Character budgets can't guarantee
+  you stay under 512 tokens. This is the single most important nuance — character-based
+  chunking can silently overflow the model and get truncated.</li>
+<li><strong>Exact <code>char_span</code></strong>: each chunk stores the exact <code>[start, end]</code> offsets into the original
+  document, so <code>document.text[start:end] == chunk.text</code> — real provenance for a forensic tool.</li>
+</ul>
+<h3 id="why-recursive-vs-the-alternatives-the-brief-listed">Why recursive (vs the alternatives the brief listed)</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Idea</th>
+<th>Why not (here)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fixed-size</strong></td>
+<td>every N characters/tokens</td>
+<td>cuts mid-sentence/word; ignores structure; reads worst</td>
+</tr>
+<tr>
+<td><strong>Sentence-boundary</strong></td>
+<td>split on sentences</td>
+<td>clean cuts but <strong>no upper bound</strong> — one long sentence/paragraph can exceed the model</td>
+</tr>
+<tr>
+<td><strong>Paragraph-boundary</strong></td>
+<td>split on paragraphs</td>
+<td>same unbounded-size problem</td>
+</tr>
+<tr>
+<td><strong>Recursive (chosen)</strong></td>
+<td>structure-aware, size-bounded</td>
+<td>gets the best of both: respects boundaries <strong>and</strong> guarantees the size cap</td>
+</tr>
+<tr>
+<td><strong>Semantic chunking</strong></td>
+<td>embed sentences, cut where meaning shifts</td>
+<td>higher quality on long, topic-shifting docs but much more expensive — overkill for short forensic docs</td>
+</tr>
+</tbody>
+</table>
+<h3 id="say-this-in-the-interview">Say this in the interview</h3>
+<blockquote>
+<p><em>"I used </em><em>token-aware recursive chunking</em><em>. Recursive means I split on the coarsest natural
+boundary — paragraph, then line, then sentence, then word — that keeps each piece under the
+token budget, recursing finer only where needed. I size it with the </em><em>model's own tokenizer</em><em>
+so chunks never exceed its 512-token window and get silently truncated. I chose it over
+fixed-size (which cuts mid-thought) and pure sentence/paragraph splitting (which has no size
+ceiling); semantic chunking would help on long documents but these are short, so recursive
+matches its quality at a fraction of the cost. Defaults: 400 tokens, 50 overlap."</em></p>
+</blockquote>
+<h3 id="if-they-push-back">If they push back</h3>
+<ul>
+<li><em>"Why 400/50?"</em> → "400 keeps a chunk topically tight and leaves headroom under 512 for the
+  model's special tokens; 50 (~12.5%) overlap stops a fact from being orphaned at a boundary."</li>
+<li><em>"What's the downside of overlap?"</em> → "Mild storage/duplication and a fact can appear in two
+  chunks — fine here; I dedupe to documents at eval/serve time."</li>
+<li><em>"What if a single sentence exceeds the budget?"</em> → "It falls through to word-level splitting;
+  the embedder would truncate an extreme outlier, and I warn if <code>chunk_size</code> leaves no room."</li>
+</ul>
+<hr />
+<h2 id="2-embeddings-the-model">2. Embeddings &amp; the model</h2>
+<h3 id="what-an-embedding-is">What an embedding is</h3>
+<p>A function that turns text into a fixed-length list of numbers (a <strong>vector</strong>, here 384 of them)
+positioned so that <strong>similar meaning → nearby vectors</strong>. "Find me a car" and "locate a vehicle"
+land close together even with no shared words. That's what makes <em>semantic</em> search work — you
+compare meaning, not keywords.</p>
+<h3 id="bi-encoder-vs-cross-encoder-know-this-cold">Bi-encoder vs cross-encoder (know this cold)</h3>
+<ul>
+<li><strong>Bi-encoder</strong> (our embedder): encodes the query and each passage <strong>independently</strong> into one
+  vector each; relevance = similarity of the two vectors. Because passages are encoded <em>once</em> at
+  ingest and indexed, a query is one forward pass + a fast lookup → <strong>scales to millions</strong>. Less
+  accurate (it never sees query and passage together).</li>
+<li><strong>Cross-encoder</strong> (our reranker, §9): feeds query <strong>and</strong> passage <em>together</em> through the model
+  and outputs one relevance score. Sees their interaction → <strong>more accurate</strong>, but must run once
+  per (query, passage) pair → can't precompute → only viable on a small candidate set.</li>
+</ul>
+<p>This bi-/cross- distinction is the backbone of the whole "retrieve cheaply, then rerank" design.</p>
+<h3 id="the-model-baaibge-small-en-v15">The model — <code>BAAI/bge-small-en-v1.5</code></h3>
+<p>A compact <strong>BERT-based</strong> encoder (~33M params, <strong>384-dim</strong> output, <strong>512-token</strong> context). It
+takes the chunk's tokens through Transformer self-attention layers and uses the <strong><code>[CLS]</code> token</strong>'s
+final vector as the embedding (CLS pooling), then <strong>L2-normalizes</strong> it. It was trained
+contrastively — pulling matching (query, passage) pairs together and pushing mismatches apart —
+which is exactly the geometry similarity search exploits.</p>
+<p><strong>Asymmetric prefix (subtle, high-signal):</strong> bge is instruction-tuned for retrieval — you prefix
+the <strong>query</strong> with <code>"Represent this sentence for searching relevant passages: "</code> and leave
+passages bare. We keep both prefixes in config, so swapping models (e5 prefixes both, MiniLM
+neither) is a config edit.</p>
+<h3 id="why-bge-small-vs-alternatives">Why bge-small (vs alternatives)</h3>
+<ul>
+<li>vs <strong>all-MiniLM-L6-v2</strong> (the brief's suggestion, kept as a fallback): bge-small ranks higher on
+  <strong>MTEB</strong> (the standard embedding benchmark), has a 512-token context (MiniLM ~256), same 384-d.</li>
+<li>vs <strong>bge-base/large, e5, gte</strong>: stronger but 768–1024-d and heavier; we spent the accuracy
+  budget on the reranker instead (it buys more per millisecond — the eval shows this).</li>
+<li>vs <strong>OpenAI/Cohere</strong>: banned by the on-prem rule.</li>
+</ul>
+<h3 id="say-this">Say this</h3>
+<blockquote>
+<p><em>"Embeddings are learned vectors where distance ≈ semantic similarity. I used a </em><em>bi-encoder</em><em>,
+<code>bge-small</code>, because passages embed once and index, so search is cheap. It's a compact BERT,
+384-dim, 512-token context, CLS-pooled and L2-normalized. I picked it over MiniLM because it
+scores higher on MTEB with double the context, and over the big models because I'd rather spend
+the latency budget on a reranker. The model is swappable by config — I even handle bge's
+query-side instruction prefix that way."</em></p>
+</blockquote>
+<h3 id="if-they-push-back_1">If they push back</h3>
+<ul>
+<li><em>"Why not a bigger embedder?"</em> → "Diminishing returns vs latency/RAM; the reranker recovers
+  more accuracy here. <code>bge-base</code> + int8 quantization is wired as the upgrade path."</li>
+<li><em>"What's the 384 for?"</em> → "The embedding dimensionality — smaller index, faster ANN, slightly
+  less expressive than 768."</li>
+</ul>
+<hr />
+<h2 id="3-cosine-similarity-the-distance-metric">3. Cosine similarity (the distance metric)</h2>
+<h3 id="what-it-is_1">What it is</h3>
+<p>The measure of how aligned two vectors are — the <strong>cosine of the angle</strong> between them. Range −1
+(opposite) … 0 (unrelated) … 1 (same direction). It cares about <strong>direction, not magnitude</strong>, so
+a long document and a short one about the same topic still match.</p>
+<p>Formula: <code>cos(a,b) = (a·b) / (|a|·|b|)</code>. If you <strong>L2-normalize</strong> vectors first (make <code>|a|=|b|=1</code>),
+this collapses to just the <strong>dot product</strong> <code>a·b</code> — cheaper and numerically stable. We normalize at
+embed time, so cosine == dot product. The brief requires cosine; Qdrant's collection is configured
+<code>Distance.COSINE</code>.</p>
+<h3 id="say-this_1">Say this</h3>
+<blockquote>
+<p><em>"Cosine similarity — the angle between vectors, so it's magnitude-invariant, which suits text
+of varying length. I L2-normalize embeddings so cosine reduces to a dot product. It's the metric
+the brief required and what the Qdrant collection uses."</em></p>
+</blockquote>
+<hr />
+<h2 id="4-vector-database-ann-hnsw">4. Vector database &amp; ANN / HNSW</h2>
+<h3 id="the-problem">The problem</h3>
+<p>You have 150 (eventually millions of) vectors. For a query vector, you want the closest ones.
+Comparing against <strong>all</strong> of them is <strong>O(N)</strong> — too slow at scale. So vector DBs use <strong>ANN
+(Approximate Nearest Neighbour)</strong>: trade a tiny bit of exactness for massive speed.</p>
+<h3 id="hnsw-how-the-index-works-the-intuition">HNSW — how the index works (the intuition)</h3>
+<p>Qdrant uses <strong>HNSW: Hierarchical Navigable Small World</strong> graphs. Think of it as a <strong>skip-list for
+geometry</strong>, or a road network:
+- Vectors are nodes connected to their near neighbours.
+- There are <strong>layers</strong>: the <strong>top</strong> layer is sparse with <strong>long-range</strong> links (highways); lower
+  layers get denser with <strong>short-range</strong> links (local streets); the <strong>bottom</strong> has every node.
+- A search <strong>starts at the top</strong>, greedily hops to whichever neighbour is closest to the query,
+  and <strong>drops a layer</strong> when it can't get closer — covering huge distances cheaply up top, then
+  refining locally at the bottom. Expected query time is <strong>logarithmic</strong> in N.</p>
+<p><strong>The knobs (exposed in <code>config.yaml::qdrant</code>):</strong>
+- <code>m</code> — links per node (higher = better recall, more memory).
+- <code>ef_construct</code> — candidate-list size while <strong>building</strong> (higher = better graph, slower build).
+- <code>hnsw_ef</code> — candidate-list size while <strong>searching</strong> (the direct recall⇄speed dial at query time).
+- <code>quantization</code> — optional int8 compression of vectors (~4× less RAM, small recall cost).</p>
+<h3 id="why-a-database-qdrant-not-a-library-faiss">Why a database (Qdrant), not a library (FAISS)</h3>
+<ul>
+<li><strong>FAISS</strong> is an ANN <strong>library</strong> — just the index. No metadata store, no filtering, no server.
+  You'd build the metadata/filtering layer yourself.</li>
+<li><strong>Chroma</strong> — simplest, in-process, but weaker hybrid/filtering story.</li>
+<li><strong>Qdrant (chosen)</strong> — a real <strong>database</strong>: ANN <strong>+</strong> payload store <strong>+</strong> metadata filtering <strong>+</strong>
+  native sparse vectors and server-side fusion (hybrid) <strong>+</strong> one-command Docker, Apache-2.0,
+  self-hosted (satisfies "no managed cloud vector DB").</li>
+</ul>
+<h3 id="say-this_2">Say this</h3>
+<blockquote>
+<p><em>"A vector DB does approximate nearest-neighbour search so you don't scan every vector. Qdrant
+uses </em><em>HNSW</em><em> — a layered proximity graph you traverse greedily, like a road network from
+highways down to local streets, giving log-time search. I chose Qdrant over FAISS because FAISS
+is just an index — Qdrant adds the payload store, metadata filtering, and native hybrid I needed,
+in one self-hosted container."</em></p>
+</blockquote>
+<h3 id="if-they-push-back_2">If they push back</h3>
+<ul>
+<li><em>"What does 'approximate' cost you?"</em> → "A small recall hit vs exhaustive search; you tune it
+  with <code>ef</code> — higher ef = closer to exact, slower."</li>
+<li><em>"How does it scale?"</em> → "HNSW is ~log(N) query; quantization + segments keep memory bounded."</li>
+</ul>
+<hr />
+<h2 id="5-metadata-filtering-filterable-hnsw-the-undervalued-part">5. Metadata filtering — filterable HNSW (the "undervalued" part)</h2>
+<h3 id="what-it-is_2">What it is</h3>
+<p>Constraining a semantic search by structured fields — <code>doc_type=witness_statement</code>,
+<code>case_id=2024-7812</code>, a <code>date</code> range. The brief flags this as undervalued; forensic analysts always
+constrain by case/date/type.</p>
+<h3 id="the-subtlety-that-shows-depth">The subtlety that shows depth</h3>
+<p>Naïve filtering is <strong>post-filtering</strong>: retrieve the top-k vectors, then drop the ones that don't
+match. If the filter is selective, you can retrieve 10 and keep 0 — recall collapses. Qdrant does
+<strong>pre-filtering integrated into the HNSW traversal</strong>: it checks the filter <em>during</em> graph search,
+so you still get the true top-k <strong>within</strong> the filtered subset. We declare <strong>payload indexes</strong>
+(<code>doc_type</code>/<code>case_id</code> as keyword, <code>date</code> as <strong>datetime</strong> so ranges work) so this is fast.</p>
+<p>Our filter builder (<code>api/filters.py</code>) also: turns an exact <code>date</code> into a <strong>half-open day window</strong>
+<code>[day, day+1)</code> (a bare equality is a zero-width midnight instant that drops same-day docs), and
+<strong>allow-lists</strong> fields to the indexed set so you can't filter on raw <code>text</code>.</p>
+<h3 id="say-this_3">Say this</h3>
+<blockquote>
+<p><em>"Metadata filtering is pre-filtered </em><em>inside</em><em> the HNSW traversal, not post-hoc — so a selective
+filter doesn't wreck recall. I index <code>doc_type</code>/<code>case_id</code> as keywords and <code>date</code> as a datetime so
+range queries work, and I handle the exact-day-as-half-open-range gotcha."</em></p>
+</blockquote>
+<hr />
+<h2 id="6-bm25-sparse-lexical-retrieval">6. BM25 — sparse lexical retrieval</h2>
+<h3 id="what-it-is_3">What it is</h3>
+<p>The classic <strong>keyword</strong> ranking function (the thing search engines used before embeddings). It
+scores a document by the <strong>query words it literally contains</strong>, weighting each by three factors:</p>
+<ol>
+<li><strong>TF (term frequency) with saturation</strong> — more occurrences help, but with <strong>diminishing
+   returns</strong> (controlled by <code>k1</code>): a word appearing 20× isn't 20× more relevant than once.</li>
+<li><strong>IDF (inverse document frequency)</strong> — <strong>rare</strong> words count far more than common ones. Matching
+   "gunmetal" is worth much more than matching "the".</li>
+<li><strong>Length normalization</strong> — divide out document length (parameter <code>b</code>, relative to the <strong>average
+   document length</strong> <code>avg_len</code>) so long docs don't win just by being long.</li>
+</ol>
+<p>Formula (for intuition, you don't need to recite it):</p>
+<pre><code>score(D,Q) = Σ_terms  IDF(q) · ( f(q,D)·(k1+1) ) / ( f(q,D) + k1·(1 − b + b·|D|/avg_len) )
+</code></pre>
+<h3 id="why-it-matters-here">Why it matters here</h3>
+<p>Forensic queries hinge on <strong>rare exact tokens</strong> — names, case IDs, a unique item ("gunmetal
+Chevrolet"). A small dense model <strong>blurs</strong> those into nearby semantics; BM25 nails them. In our
+eval, BM25 alone is the <strong>strongest single retriever</strong> (Hit@5 0.93).</p>
+<p>We store BM25 as a <strong>sparse vector</strong> (term→weight) <em>inside</em> Qdrant via <code>fastembed</code>, so dense and
+sparse never drift. <strong>High-signal detail:</strong> we set <code>avg_len</code> to match <code>chunk_size</code> (~400) — the
+library default (256) would mis-normalize every chunk.</p>
+<h3 id="say-this_4">Say this</h3>
+<blockquote>
+<p><em>"BM25 is lexical ranking — TF with saturation, IDF so rare terms dominate, and length
+normalization. It's a strong baseline for forensic text because queries hinge on rare exact
+tokens that a small dense model blurs. I run it as a sparse vector inside Qdrant and calibrated
+its <code>avg_len</code> to my chunk size, which the default gets wrong."</em></p>
+</blockquote>
+<hr />
+<h2 id="7-hybrid-search-reciprocal-rank-fusion-rrf">7. Hybrid search &amp; Reciprocal Rank Fusion (RRF)</h2>
+<h3 id="why-hybrid">Why hybrid</h3>
+<p>Dense (semantic) and BM25 (lexical) fail differently: dense gets paraphrases, BM25 gets rare exact
+tokens. <strong>Hybrid</strong> runs both and merges, to get the strengths of each.</p>
+<h3 id="the-problem-merging-causes">The problem merging causes</h3>
+<p>Dense cosine scores live in ~0–1; BM25 scores are unbounded and on a totally different scale. You
+<strong>can't just add them</strong>. Two ways out:
+- <strong>Weighted score fusion</strong>: normalize both, then <code>α·dense + (1−α)·bm25</code>. Works, but you must tune
+  <code>α</code> per corpus and pick a normalization.
+- <strong>Reciprocal Rank Fusion (RRF)</strong> — fuse <strong>ranks</strong>, not scores:
+  <code>RRF(d) = Σ_retriever  1 / (k + rank_retriever(d))      (k ≈ 60)</code>
+  No normalization, no tuning beyond <code>k</code>. Robust. This is our default (and Qdrant runs it
+  server-side).</p>
+<h3 id="worked-rrf-example-k60">Worked RRF example (k=60)</h3>
+<p>Dense ranks: A(1), B(2), C(3). BM25 ranks: C(1), A(2), B(4).
+- RRF(A) = 1/61 + 1/62 = <strong>0.0325</strong>  ← high in <em>both</em> → wins
+- RRF(C) = 1/63 + 1/61 = 0.0323
+- RRF(B) = 1/62 + 1/64 = 0.0318</p>
+<p>A document ranked well by <strong>both</strong> retrievers floats to the top, even if it was #1 by neither.
+That's the whole point: agreement across independent signals wins.</p>
+<h3 id="say-this_5">Say this</h3>
+<blockquote>
+<p><em>"Dense and BM25 scores aren't comparable, so I fuse </em><em>ranks</em><em> with RRF — sum of 1/(k+rank)
+across retrievers. It needs no score normalization or per-corpus weight tuning, and Qdrant runs
+it server-side from two prefetch branches. Weighted fusion is the alternative but you have to
+calibrate the weight."</em></p>
+</blockquote>
+<hr />
+<h2 id="8-cross-encoder-reranking-the-precision-stage">8. Cross-encoder reranking (the precision stage)</h2>
+<h3 id="what-it-is_4">What it is</h3>
+<p>First-stage retrieval (dense/hybrid) is <strong>recall-oriented</strong> — get the right doc <em>somewhere</em> in the
+top ~50, cheaply. A <strong>cross-encoder reranker</strong> then <strong>re-reads</strong> each of those candidates <em>together</em>
+with the query and re-scores for <strong>precision</strong> — getting the best one to rank #1.</p>
+<p>Why it's a <em>second</em> stage: a cross-encoder concatenates <code>[query] [SEP] [passage]</code> and runs full
+attention, so it models their interaction (far more accurate) — but it can't precompute, so it's
+O(candidates) per query. You only afford it on the top-N, not the whole corpus.</p>
+<h3 id="impact-from-our-eval">Impact (from our eval)</h3>
+<p>Reranking lifted <strong>Hit@1 from 0.53 → 0.73</strong> and gave the best MRR (0.814) — the single biggest
+accuracy lever on this corpus, fully local (<code>bge-reranker-base</code>).</p>
+<h3 id="say-this_6">Say this</h3>
+<blockquote>
+<p><em>"I added a </em><em>cross-encoder reranker</em><em> as a precision stage. The bi-encoder retrieves the top-N
+for recall cheaply; the cross-encoder reads query and passage together to reorder them — much
+more accurate but O(N) per query, so it only runs on the candidates. It moved Hit@1 from 0.53 to
+0.73 — the biggest single gain — and stays on-prem."</em></p>
+</blockquote>
+<hr />
+<h2 id="9-evaluation-hitk-mrr-confidence-intervals">9. Evaluation — Hit@K, MRR, confidence intervals</h2>
+<h3 id="hitk">Hit@K</h3>
+<p>Binary per query: <strong>1 if the correct document is in the top-K results, else 0.</strong> Report the average
+over all queries. <code>Hit@1</code> = "was it the very top result?"; <code>Hit@5</code> = "was it in the top 5?".</p>
+<h3 id="mrr-mean-reciprocal-rank">MRR (Mean Reciprocal Rank)</h3>
+<p>For each query, take the <strong>reciprocal of the rank</strong> of the first correct hit (rank 1 → 1.0, rank 2
+→ 0.5, rank 3 → 0.333, not found → 0), then <strong>average</strong> across queries. Unlike Hit@K, it rewards
+ranking the answer <strong>higher</strong>, not just being present.</p>
+<p><strong>Worked example</strong> — 3 queries, correct doc at ranks 1, 3, and not-found:
+- RR = 1.0, 0.333, 0.0 → <strong>MRR = (1.0+0.333+0.0)/3 = 0.444</strong>
+- Hit@1 = 1/3 = 0.33 (only the first); Hit@5 = 2/3 = 0.67 (first two).</p>
+<h3 id="wilson-confidence-interval-the-maturity-signal">Wilson confidence interval (the maturity signal)</h3>
+<p>With only <strong>30 queries</strong>, a number like "Hit@5 = 0.97" is <strong>noisy</strong> — one query is 3.3%. A
+<strong>Wilson 95% CI</strong> gives the range the true value plausibly sits in. E.g. 29/30 ≈ 0.967 has a 95% CI
+of roughly <strong>[0.83, 0.99]</strong> — so you should <em>not</em> claim it's beating a 0.90 retriever. Reporting the
+interval (not just the point) is what reads as engineering maturity.</p>
+<h3 id="say-this_7">Say this</h3>
+<blockquote>
+<p><em>"Hit@K is binary top-K presence; MRR averages 1/rank of the first hit, so it rewards ranking the
+answer higher. At n=30 I report </em><em>Wilson confidence intervals</em><em> because point estimates are noisy
+at that size — I'd rather show 0.93 [0.79–0.98] than overclaim 0.93."</em></p>
+</blockquote>
+<hr />
+<h2 id="10-eval-methodology-the-circularity-trap-your-sharpest-talking-point">10. Eval methodology — the circularity trap (your sharpest talking point)</h2>
+<h3 id="the-trap">The trap</h3>
+<p>If you build synthetic data <strong>and</strong> the ground-truth queries by copying a phrase straight out of
+the target document, then BM25 wins by <strong>verbatim string match</strong> and your eval proves nothing — it
+measures "can the system find a string it was handed," not retrieval quality. This is <strong>evaluation
+leakage / circularity</strong>, and most synthetic-data evals fall into it by accident.</p>
+<h3 id="what-we-did">What we did</h3>
+<p>Ground-truth queries <strong>paraphrase</strong> the planted detail in lexically-disjoint words — e.g. the
+document says <em>"a faded blue tarpaulin in the bed"</em>, the query asks for <em>"a weathered sheet covering
+the cargo area."</em> A test asserts <strong>0 paraphrase queries are verbatim substrings</strong> of their targets.
+We also tag queries by <strong>category</strong> (paraphrase vs rare-token entity) and report them separately,
+and we split filter <strong>precision</strong> (returned docs that match the filter) from <strong>recall</strong> (the right
+doc survives). The eval narrative is generated <strong>from the measured numbers</strong>, so it can't claim a
+win it didn't get.</p>
+<h3 id="say-this_8">Say this</h3>
+<blockquote>
+<p><em>"The eval's most important property is that it's </em><em>not circular</em><em>. I paraphrase the queries so
+they don't share surface words with the answer — otherwise BM25 wins by string-matching and the
+numbers are a tautology. I verify zero verbatim overlap in a test, break results out by query
+type, and separate filter precision from recall. That's the difference between measuring
+retrieval and measuring leakage."</em></p>
+</blockquote>
+<p>This single point often impresses more than any model choice — it shows you think like an evaluator.</p>
+<hr />
+<h2 id="11-idempotency-deterministic-ids">11. Idempotency — deterministic IDs</h2>
+<h3 id="what-it-is_5">What it is</h3>
+<p><strong>Idempotent</strong> = running the pipeline twice gives the same result as once (no duplicates). The
+brief requires it.</p>
+<h3 id="how-we-do-it">How we do it</h3>
+<p>Each chunk's storage ID is a <strong>UUID5</strong> (a name-based UUID — a hash) of <code>"{source_file}:{chunk_index}"</code>.
+Same input → same ID → Qdrant <strong>upsert</strong> overwrites that point instead of inserting a new one. Re-run
+→ stable count. We also <strong>sweep orphans</strong>: before re-ingesting a file we delete its old points, so an
+edited file that now yields <em>fewer</em> chunks doesn't leave stale leftovers.</p>
+<h3 id="say-this_9">Say this</h3>
+<blockquote>
+<p><em>"Idempotency comes from </em><em>content-addressed IDs</em><em>: a deterministic UUID5 of (source_file,
+chunk_index). Re-ingesting maps to the same ID and upsert overwrites — no duplicates. I also sweep
+a file's old points before re-adding it, to handle edits that shrink a document."</em></p>
+</blockquote>
+<hr />
+<h2 id="12-production-on-prem-patterns-quick-hits">12. Production &amp; on-prem patterns (quick hits)</h2>
+<ul>
+<li><strong>Singletons in the app lifespan</strong> — models load <strong>once</strong> at startup, injected via FastAPI
+  <code>Depends</code>, never per request. <em>"You never want to load a 100MB model on every request."</em></li>
+<li><strong>Config-driven</strong> (<code>pydantic-settings</code>, <code>config.yaml</code> + <code>RAG__*</code> env overrides) — model, host,
+  port, collection are all config; nothing cloud is hard-coded. The on-prem requirement is "a
+  first-class concern, not an afterthought" (their words).</li>
+<li><strong>Air-gappable</strong> — <code>rag fetch-models</code> warms the cache once; <code>local_files_only</code> then forbids any
+  network call. That's on-prem taken literally (forensic gear is often disconnected).</li>
+<li><strong>Error handling</strong> — input validation → 422; store outage → 503; <code>/health</code> never throws. <em>"A
+  health check that 500s is worse than useless."</em></li>
+</ul>
+<hr />
+<h2 id="13-rapid-fire-likely-questions-crisp-answers">13. Rapid-fire — likely questions &amp; crisp answers</h2>
+<ul>
+<li><strong>"Why chunk at all?"</strong> → Models have a fixed context window, and a chunk-level embedding is a
+  cleaner topic representation than a whole-document average; you also return the precise passage.</li>
+<li><strong>"Dense vs sparse — when does each win?"</strong> → Dense wins on paraphrase/synonyms; sparse (BM25)
+  wins on rare exact tokens (names, IDs). Hybrid gets both; my eval shows it per category.</li>
+<li><strong>"Why cosine not Euclidean?"</strong> → Text embeddings care about direction/topic, not magnitude;
+  with normalized vectors cosine = dot product and it's the conventional, required metric.</li>
+<li><strong>"How do you know it works?"</strong> → I measured it: Hit@1/Hit@5/MRR with CIs, dense vs BM25 vs hybrid
+  vs reranked, plus filter precision/recall — over paraphrased (non-circular) queries.</li>
+<li><strong>"Biggest weakness?"</strong> → The small embedder is weak on pure paraphrase (Hit@5 0.40 on that
+  subset); the reranker compensates, and <code>bge-base</code> is the wired upgrade. The synthetic corpus is
+  also templated, so generic queries can't discriminate — a real corpus would.</li>
+<li><strong>"How does it scale to millions of docs?"</strong> → HNSW is ~log(N) query; quantization caps memory;
+  Qdrant shards/segments; the embedder is the throughput bottleneck at ingest (batch + GPU).</li>
+<li><strong>"Why no LLM/generation?"</strong> → It was optional; I focused on retrieval quality (the graded core).
+  Adding Ollama to generate grounded answers over the retrieved chunks is the next step.</li>
+<li><strong>"What would you do with more time?"</strong> → Bigger embedder + quantization, a held-out multi-seed
+  eval with relational/temporal query categories, and the local-LLM answer layer.</li>
+</ul>
+<hr />
+<h2 id="14-one-line-glossary">14. One-line glossary</h2>
+<ul>
+<li><strong>Embedding</strong> — text → vector where distance ≈ meaning similarity.</li>
+<li><strong>Bi-encoder</strong> — encodes query &amp; passage separately (fast, precomputable, less accurate).</li>
+<li><strong>Cross-encoder</strong> — encodes them together (slow, accurate, rerank-only).</li>
+<li><strong>Chunk</strong> — a sub-document piece sized to the model, the unit you embed/retrieve.</li>
+<li><strong>Recursive splitting</strong> — split on coarsest natural boundary that fits the size budget, recurse finer.</li>
+<li><strong>Token</strong> — the model's sub-word unit; the context limit (512) is counted in these.</li>
+<li><strong>Cosine similarity</strong> — angle between vectors; magnitude-invariant; = dot product when normalized.</li>
+<li><strong>ANN</strong> — approximate nearest-neighbour search (trade tiny accuracy for big speed).</li>
+<li><strong>HNSW</strong> — the layered proximity-graph index Qdrant uses; ~log(N) search.</li>
+<li><strong>Payload</strong> — the metadata stored alongside a vector (doc_type, case_id, date, …).</li>
+<li><strong>BM25</strong> — lexical ranking: TF-saturation × IDF × length-normalization.</li>
+<li><strong>Sparse vector</strong> — term→weight representation (mostly zeros) used for BM25 inside the store.</li>
+<li><strong>RRF</strong> — Reciprocal Rank Fusion; merge retrievers by Σ 1/(k+rank).</li>
+<li><strong>Reranker</strong> — second-stage cross-encoder that reorders top-N for precision.</li>
+<li><strong>Hit@K</strong> — was the right doc in the top K? <strong>MRR</strong> — average of 1/rank of the first hit.</li>
+<li><strong>Wilson interval</strong> — confidence interval for a proportion; honest at small n.</li>
+<li><strong>Idempotent</strong> — re-running changes nothing (here: deterministic UUID5 ids + upsert).</li>
+<li><strong>RAG</strong> — Retrieval-Augmented Generation; this project is the <strong>retrieval</strong> half.</li>
+</ul>
+<hr />
+<p><em>Pair this with <a href="04_design_rationale.md"><code>04_design_rationale.md</code></a> for the primary-source papers
+behind each method (Sentence-BERT, BGE/C-Pack, HNSW, BM25, RRF, cross-encoder reranking).</em></p>
+</main></body></html>
