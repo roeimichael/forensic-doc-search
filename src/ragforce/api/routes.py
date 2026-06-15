@@ -56,15 +56,23 @@ def _fetch_k(reranker: Any, top_k: int) -> int:
     return max(reranker.top_n, top_k) if reranker is not None else top_k
 
 
-def _rerank(reranker: Any, query: str, hits: list[SearchHit], top_k: int) -> list[SearchHit]:
-    return reranker.rerank(query, hits, top_k=top_k) if reranker is not None else hits[:top_k]
+def _finalize(
+    reranker: Any, query: str, hits: list[SearchHit], *, top_k: int, min_score: float | None
+) -> SearchResponse:
+    """Rerank → apply the optional confidence floor → cap to top_k.
 
-
-def _to_response(hits: list[SearchHit]) -> SearchResponse:
+    Order matters: we rerank *all* fetched candidates (no premature trim), then drop any
+    below ``min_score``, then take the first ``top_k``. So the result is "up to top_k hits,
+    each at or above the floor" — not "the top_k, some of which we then hid".
+    """
+    ranked = reranker.rerank(query, hits, top_k=None) if reranker is not None else hits
+    if min_score is not None:
+        ranked = [h for h in ranked if h.score >= min_score]
+    ranked = ranked[:top_k]
     return SearchResponse(
         results=[
             SearchResultItem(chunk_id=h.chunk_id, score=h.score, text=h.text, metadata=h.metadata)
-            for h in hits
+            for h in ranked
         ]
     )
 
@@ -80,7 +88,7 @@ def search(
     vec = dense.embed_query(req.query)
     k = _fetch_k(reranker, req.top_k)
     hits = _guard(lambda: store.search_dense(vec, top_k=k))
-    return _to_response(_rerank(reranker, req.query, hits, req.top_k))
+    return _finalize(reranker, req.query, hits, top_k=req.top_k, min_score=req.min_score)
 
 
 @router.post("/search/filtered", response_model=SearchResponse)
@@ -95,7 +103,7 @@ def search_filtered(
     vec = dense.embed_query(req.query)
     k = _fetch_k(reranker, req.top_k)
     hits = _guard(lambda: store.search_dense(vec, top_k=k, query_filter=qf))
-    return _to_response(_rerank(reranker, req.query, hits, req.top_k))
+    return _finalize(reranker, req.query, hits, top_k=req.top_k, min_score=req.min_score)
 
 
 @router.post("/search/hybrid", response_model=SearchResponse)
@@ -113,7 +121,7 @@ def search_hybrid(
     dvec, svec = dense.embed_query(req.query), sparse.embed_query(req.query)
     k = _fetch_k(reranker, req.top_k)
     hits = _guard(lambda: store.search_hybrid(dvec, svec, top_k=k, query_filter=qf))
-    return _to_response(_rerank(reranker, req.query, hits, req.top_k))
+    return _finalize(reranker, req.query, hits, top_k=req.top_k, min_score=req.min_score)
 
 
 @router.get("/health", response_model=HealthResponse)

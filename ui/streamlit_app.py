@@ -31,10 +31,13 @@ st.caption(f"On-prem semantic + metadata + hybrid retrieval (reranked server-sid
 
 # ── query + mode ─────────────────────────────────────────────────────────────
 query = st.text_input("Natural-language query", placeholder="e.g. a dark blue Ford pickup with a covered cargo bed")
-c1, c2 = st.columns([2, 1])
+c1, c2, c3 = st.columns([2, 1, 1])
 mode = c1.radio("Search mode", list(_MODES), horizontal=True,
                 help="Semantic = vector only · Metadata-filtered = vector + filters · Hybrid = dense + BM25 (RRF)")
-top_k = c2.slider("Results (top_k)", 1, 20, 5)
+top_k = c2.slider("Max results", 1, 20, 5, help="Upper bound on how many results to return.")
+min_conf = c3.slider("Min confidence", 0.0, 1.0, 0.0, 0.05,
+                     help="Hide results below this reranker relevance score (0–1). 0 = show all. "
+                          "Try ~0.5 to keep only strong matches.")
 
 # ── filters (only used by filtered / hybrid) ─────────────────────────────────
 uses_filters = mode != "Semantic"
@@ -58,6 +61,8 @@ search_clicked = st.button("Search", type="primary")
 def _run_search() -> tuple[list[dict], str | None]:
     endpoint = _MODES[mode]
     payload: dict = {"query": query, "top_k": top_k}
+    if min_conf > 0:
+        payload["min_score"] = min_conf
     if uses_filters:
         payload["filters"] = filters
     try:
@@ -78,7 +83,23 @@ if search_clicked and query.strip():
     if error:
         st.error(error)                       # API down / bad request — distinct from "no matches"
     elif not results:
-        st.info("No matching documents.")     # the search ran fine; nothing matched
+        # Semantic/hybrid over a non-empty corpus always returns nearest neighbours, so a
+        # zero means we pre-filtered or post-filtered them away. Name the likely cause(s).
+        causes = []
+        if uses_filters and filters:
+            active = " · ".join(f"{k} = {v}" for k, v in filters.items())
+            causes.append(f"the **metadata filter** (`{active}`) excluded every document")
+        if min_conf > 0:
+            causes.append(f"no match reached the **confidence floor** ({min_conf:.2f})")
+        if causes:
+            st.info(
+                "**0 results** — likely because " + " and ".join(causes) + ".\n\n"
+                "Filters run *before* the vector search and the confidence floor runs *after* it. "
+                "Clear the filters, lower *Min confidence*, or use **Semantic** mode to search the "
+                "whole corpus by meaning."
+            )
+        else:
+            st.info("No matching documents in the corpus.")
     else:
         st.success(f"{len(results)} result(s) via {_MODES[mode]}")
         st.caption(

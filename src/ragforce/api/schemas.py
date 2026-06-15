@@ -17,6 +17,9 @@ class SearchRequest(BaseModel):
 
     query: str = Field(min_length=1, max_length=2048)
     top_k: int = Field(default=5, ge=1, le=100)
+    # Optional relevance floor: drop hits scoring below this (applied AFTER reranking,
+    # so it gates on the reranker's [0,1] relevance score). None = keep all top_k.
+    min_score: float | None = Field(default=None, ge=0.0, le=1.0)
 
     @field_validator("query")
     @classmethod
