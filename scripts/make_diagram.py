@@ -135,11 +135,11 @@ def main() -> Path:
             style="italic", color="#6b7280")
 
     # ── config (cross-cutting) ───────────────────────────────────────────────
-    box(ax, 4, 54, 20, 11, "config.yaml + .env",
-        "model · chunk · qdrant · paths\n(env vars override)", CONFIG, CONFIG_E)
+    box(ax, 4, 56, 20, 8.5, "config.yaml + .env",
+        "model · chunk · qdrant · paths", CONFIG, CONFIG_E)
     # one dashed feed up into ingestion, one down toward storage/serving
-    arrow(ax, (14, 65), (10, 67), color=CONFIG_E, style="-|>", rad=0.0, lw=1.2)
-    arrow(ax, (24, 59), (30, 47), color=CONFIG_E, style="-|>", rad=-0.15, lw=1.2)
+    arrow(ax, (14, 64.5), (10, 67), color=CONFIG_E, style="-|>", rad=0.0, lw=1.2)
+    arrow(ax, (25, 60), (30, 47), color=CONFIG_E, style="-|>", rad=-0.15, lw=1.2)
 
     fig.savefig(OUT, dpi=150, bbox_inches="tight", pad_inches=0.35, facecolor="white")
     plt.close(fig)
