@@ -10,6 +10,7 @@ and **structured metadata** (doc_type, case_id, date) — with **no cloud APIs**
 > Design & schema: [`docs/02_architecture.md`](docs/02_architecture.md). Component-by-component
 > rationale + sources: [`docs/04_design_rationale.md`](docs/04_design_rationale.md). Methodology
 > study guide (learn each method from scratch): [`docs/05_interview_prep.md`](docs/05_interview_prep.md).
+> Embedder/chunking A/B sweep (we tested the alternatives): [`docs/06_model_sweep.md`](docs/06_model_sweep.md).
 
 ![Architecture](docs/architecture.png)
 
@@ -144,10 +145,13 @@ Full rationale: [`docs/02_architecture.md`](docs/02_architecture.md).
 
 ## Future Work
 
-- Larger first-stage embedder (`bge-base`) once latency budget allows; quantization
-  is wired (`qdrant.quantization`) to keep that cheap.
+- Fine-tune the **reranker** on in-domain (query, passage) pairs — the A/B sweep
+  ([`docs/06_model_sweep.md`](docs/06_model_sweep.md)) showed a *larger* first-stage
+  embedder (`bge-base`, 768-d) does **not** help on this corpus; the cross-encoder is the
+  lever, so that's where added capacity pays off.
 - Optional local LLM (Ollama) for grounded answer generation over retrieved chunks.
-- A held-out, multi-seed eval with relational/temporal query categories for tighter CIs.
+- A held-out, multi-seed eval with relational/temporal query categories for tighter CIs
+  (the current n=30 CIs are wide).
 
 ## License
 
