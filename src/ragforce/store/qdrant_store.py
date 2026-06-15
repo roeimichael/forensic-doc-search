@@ -136,11 +136,18 @@ class VectorStore:
         return self._client.count(self._collection).count
 
     def stats(self) -> dict[str, Any]:
-        """Store stats for ``GET /health`` (collection, points_count, vector dim)."""
+        """Store stats for ``GET /health`` (collection, doc/chunk counts, vector dim)."""
         info = self._client.get_collection(self._collection)
         dense_params = (info.config.params.vectors or {}).get(self._dense)
+        try:
+            # distinct source documents (chunks share a source_file); needs the keyword index
+            facet = self._client.facet(self._collection, key="source_file", limit=1_000_000)
+            documents = len(facet.hits)
+        except Exception:  # noqa: BLE001 — facet is best-effort; never break /health
+            documents = None
         return {
             "collection": self._collection,
+            "documents_count": documents,
             "points_count": self.count(),
             "vector_dim": getattr(dense_params, "size", None),
             "status": str(info.status),

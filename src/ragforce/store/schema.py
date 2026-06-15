@@ -15,11 +15,14 @@ from typing import Any
 
 from qdrant_client import models
 
-# (payload field, Qdrant index schema type). Datetime enables range filters on date.
+# (payload field, Qdrant index schema type). Datetime enables range filters on date;
+# the source_file keyword index makes the idempotency delete-sweep and the /health
+# distinct-document facet fast (and lets callers filter to a single file).
 PAYLOAD_INDEXES: list[tuple[str, str]] = [
     ("doc_type", "keyword"),
     ("case_id", "keyword"),
     ("date", "datetime"),
+    ("source_file", "keyword"),
 ]
 
 

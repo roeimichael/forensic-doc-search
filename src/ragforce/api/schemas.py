@@ -63,5 +63,6 @@ class HealthResponse(BaseModel):
 
     status: str
     collection: str
-    chunk_count: int          # points == chunks (not source documents)
+    document_count: int | None   # distinct source documents (None if unavailable)
+    chunk_count: int             # stored points == chunks
     embedding_model: str

@@ -7,7 +7,8 @@ and **structured metadata** (doc_type, case_id, date) — with **no cloud APIs**
 
 > Built for the Cellebrite GenAI Innovation Team home assignment. Requirements and
 > task breakdown: [`docs/01_requirements_and_tasks.md`](docs/01_requirements_and_tasks.md).
-> Design & schema: [`docs/02_architecture.md`](docs/02_architecture.md).
+> Design & schema: [`docs/02_architecture.md`](docs/02_architecture.md). Component-by-component
+> rationale + sources: [`docs/04_design_rationale.md`](docs/04_design_rationale.md).
 
 ![Architecture](docs/architecture.png)
 

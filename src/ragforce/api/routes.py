@@ -129,11 +129,13 @@ def health(store=Depends(get_store), settings=Depends(get_settings)) -> HealthRe
         stats = store.stats()
     except Exception:  # noqa: BLE001 — health must never propagate
         return HealthResponse(
-            status="unavailable", collection=collection, chunk_count=0, embedding_model=model
+            status="unavailable", collection=collection,
+            document_count=None, chunk_count=0, embedding_model=model,
         )
     return HealthResponse(
         status=stats.get("status", "unknown"),
         collection=stats["collection"],
+        document_count=stats.get("documents_count"),
         chunk_count=stats["points_count"],
         embedding_model=model,
     )
