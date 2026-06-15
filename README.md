@@ -8,8 +8,7 @@ and **structured metadata** (doc_type, case_id, date) — with **no cloud APIs**
 > Built for the Cellebrite GenAI Innovation Team home assignment. Requirements and
 > task breakdown: [`docs/01_requirements_and_tasks.md`](docs/01_requirements_and_tasks.md).
 > Design & schema: [`docs/02_architecture.md`](docs/02_architecture.md). Component-by-component
-> rationale + sources: [`docs/04_design_rationale.md`](docs/04_design_rationale.md). Methodology
-> study guide (learn each method from scratch): [`docs/05_interview_prep.md`](docs/05_interview_prep.md).
+> rationale + sources: [`docs/04_design_rationale.md`](docs/04_design_rationale.md).
 > Embedder/chunking A/B sweep (we tested the alternatives): [`docs/06_model_sweep.md`](docs/06_model_sweep.md).
 
 ![Architecture](docs/architecture.png)

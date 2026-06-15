@@ -14,7 +14,8 @@ venv/
 
 # Env / secrets (config-driven; never commit real secrets)
 .env
-.streamlit/secrets.toml   # Streamlit secrets store — never commit (config.toml is fine)
+# Streamlit secrets store — never commit (config.toml is fine)
+.streamlit/secrets.toml
 
 # Confidential assignment brief — kept out of the repo deliberately
 Data Engineer Home Assignment.pdf
@@ -24,6 +25,11 @@ qdrant_storage/
 
 # Generated dataset — reproducible via `rag generate`, so not committed
 data/generated/
+# one-off 250-doc scale/quality test corpus (not a deliverable)
+data/_test250/
+
+# Local-only interview-prep bundle (personal study material, kept out of the submission)
+prep/
 
 # Local model / HF caches
 .cache/
