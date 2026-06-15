@@ -37,11 +37,12 @@ def box(ax, x, y, w, h, title, sub, face, edge):
         )
     )
     cx = x + w / 2
-    ax.text(cx, y + h - 3.6, title, ha="center", va="top",
+    ax.text(cx, y + h - 3.4, title, ha="center", va="top",
             fontsize=11, fontweight="bold", color=INK, zorder=3)
     if sub:
-        ax.text(cx, y + h - 8.2, sub, ha="center", va="top",
-                fontsize=8.2, color="#374151", zorder=3, linespacing=1.35)
+        # body left-aligned at a fixed inset so multi-line technical lists line up
+        ax.text(x + 2.8, y + h - 8.0, sub, ha="left", va="top",
+                fontsize=8.0, color="#374151", zorder=3, linespacing=1.5)
 
 
 def arrow(ax, p0, p1, color=INK, style="-|>", rad=0.0, lw=1.7):
@@ -107,7 +108,9 @@ def main() -> Path:
     ax.text(3.2, 31, "SERVING  (online)", ha="left", va="center",
             fontsize=9, fontweight="bold", color=SERVE_E)
     box(ax, 30, 13, 40, 16, "FastAPI  +  cross-encoder reranker",
-        "POST /search          semantic\nPOST /search/filtered   + metadata / date range\nPOST /search/hybrid     dense + BM25, RRF\n-> rerank top-N (bge-reranker)  ·  GET /health", SERVE, SERVE_E)
+        "POST /search · semantic\nPOST /search/filtered · metadata + date range\n"
+        "POST /search/hybrid · dense + BM25 (RRF)\nrerank top-N (bge-reranker) · GET /health",
+        SERVE, SERVE_E)
 
     # qdrant <-> api (query / hits)
     arrow(ax, (45, 38), (45, 29), color=SERVE_E)
@@ -132,15 +135,13 @@ def main() -> Path:
             style="italic", color="#6b7280")
 
     # ── config (cross-cutting) ───────────────────────────────────────────────
-    box(ax, 4, 56, 20, 8.5, "config.yaml + .env",
-        "model · chunk · qdrant · paths", CONFIG, CONFIG_E)
+    box(ax, 4, 54, 20, 11, "config.yaml + .env",
+        "model · chunk · qdrant · paths\n(env vars override)", CONFIG, CONFIG_E)
     # one dashed feed up into ingestion, one down toward storage/serving
-    arrow(ax, (14, 64.5), (10, 67), color=CONFIG_E, style="-|>", rad=0.0, lw=1.2)
-    arrow(ax, (24, 60), (30, 47), color=CONFIG_E, style="-|>", rad=-0.15, lw=1.2)
-    ax.text(14, 55, "config-driven\n(env overrides)", ha="center", va="top",
-            fontsize=7.5, style="italic", color=CONFIG_E)
+    arrow(ax, (14, 65), (10, 67), color=CONFIG_E, style="-|>", rad=0.0, lw=1.2)
+    arrow(ax, (24, 59), (30, 47), color=CONFIG_E, style="-|>", rad=-0.15, lw=1.2)
 
-    fig.savefig(OUT, dpi=150, bbox_inches="tight", facecolor="white")
+    fig.savefig(OUT, dpi=150, bbox_inches="tight", pad_inches=0.35, facecolor="white")
     plt.close(fig)
     return OUT
 
