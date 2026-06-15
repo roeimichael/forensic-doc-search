@@ -14,6 +14,7 @@ venv/
 
 # Env / secrets (config-driven; never commit real secrets)
 .env
+.streamlit/secrets.toml   # Streamlit secrets store — never commit (config.toml is fine)
 
 # Confidential assignment brief — kept out of the repo deliberately
 Data Engineer Home Assignment.pdf

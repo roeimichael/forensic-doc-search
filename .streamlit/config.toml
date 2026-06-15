@@ -1,0 +1,16 @@
+# Streamlit UI config for the on-prem forensic search app.
+# This is an internal, self-hosted analyst tool — hide the developer/cloud chrome
+# (the "Deploy to Streamlit Cloud" button and the developer menu) so the UI reads
+# as a finished on-prem product, not a dev sandbox.
+
+[client]
+# "minimal" drops the Deploy button and the developer options (Clear cache, etc.).
+toolbarMode = "minimal"
+# Don't surface tracebacks with source to end users of a forensic tool.
+showErrorDetails = false
+
+[browser]
+gatherUsageStats = false   # no telemetry phoned home (consistent with on-prem/air-gap)
+
+[theme]
+base = "dark"
