@@ -28,6 +28,7 @@ PY = sys.executable
 ROOT = Path(__file__).resolve().parents[1]
 SWEEP_COLLECTION = "forensic_docs_sweep"
 REPORT = ROOT / "docs" / "06_model_sweep.md"
+CANON_EVAL = ROOT / "docs" / "03_eval_results.md"  # `rag eval` rewrites this; we snapshot+restore
 
 _BGE_QPREFIX = "Represent this sentence for searching relevant passages: "
 
@@ -208,16 +209,23 @@ def main() -> None:
         raise SystemExit(f"unknown config(s): {bad}. Known: {list(CONFIGS)}")
 
     print(f"sweep: {labels}  -> collection '{SWEEP_COLLECTION}'\n")
+    # `rag eval` always rewrites the canonical docs/03 report; snapshot + restore it so a
+    # sweep (which evaluates throwaway collections) never dirties the shipped baseline.
+    canon = CANON_EVAL.read_bytes() if CANON_EVAL.exists() else None
     results: dict[str, dict[str, dict[str, float]]] = {}
-    for label in labels:
-        try:
-            results[label] = run_config(label)
-            r = results[label].get("hybrid+rerank", {})
-            print(f"  [{label}] done: Hit@1={r.get('hit@1','?')} "
-                  f"Hit@5={r.get('hit@5','?')} MRR={r.get('mrr','?')}\n", flush=True)
-        except Exception as exc:  # noqa: BLE001 — one bad model shouldn't sink the sweep
-            print(f"  [{label}] FAILED: {exc}\n", flush=True)
-            results[label] = {}
+    try:
+        for label in labels:
+            try:
+                results[label] = run_config(label)
+                r = results[label].get("hybrid+rerank", {})
+                print(f"  [{label}] done: Hit@1={r.get('hit@1','?')} "
+                      f"Hit@5={r.get('hit@5','?')} MRR={r.get('mrr','?')}\n", flush=True)
+            except Exception as exc:  # noqa: BLE001 — one bad model shouldn't sink the sweep
+                print(f"  [{label}] FAILED: {exc}\n", flush=True)
+                results[label] = {}
+    finally:
+        if canon is not None:
+            CANON_EVAL.write_bytes(canon)  # undo `rag eval`'s clobber of the shipped report
     write_report(results)
 
 
